@@ -25,15 +25,15 @@ namespace CODE.Framework.Core.ServiceHandler.Web
         {
             services.AddServiceHandler(config =>
             {
-                config.Services.AddRange(new List<ServiceHandlerServiceInstance>
+                config.Services.AddRange(new List<ServiceHandlerConfigurationInstance>
                 {
-                    new ServiceHandlerServiceInstance
+                    new ServiceHandlerConfigurationInstance
                     {
                         ServiceTypeName = "UserService",
                         AssemblyName = null,
                         RouteBasePath = "/api/users"
                     },
-                    new ServiceHandlerServiceInstance
+                    new ServiceHandlerConfigurationInstance
                     {
                         ServiceTypeName = "CustomerService",
                         AssemblyName = null,

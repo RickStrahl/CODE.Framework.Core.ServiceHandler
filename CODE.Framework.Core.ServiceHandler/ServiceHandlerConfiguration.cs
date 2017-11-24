@@ -15,12 +15,12 @@ namespace CODE.Framework.Core.ServiceHandler
         /// <summary>
         /// Holds a list of services that are configured to be handled.
         /// </summary>
-        public List<ServiceHandlerServiceInstance> Services { get; set; } = new List<ServiceHandlerServiceInstance>();
+        public List<ServiceHandlerConfigurationInstance> Services { get; set; } = new List<ServiceHandlerConfigurationInstance>();
         
     }
 
 
-    public class ServiceHandlerServiceInstance
+    public class ServiceHandlerConfigurationInstance
     {
         public string ServiceTypeName
         {
@@ -32,6 +32,12 @@ namespace CODE.Framework.Core.ServiceHandler
         public string AssemblyName { get; set; }
 
         public string RouteBasePath { get; set; }
+
+        /// <summary>
+        /// You can specify a specific type to bind rather than
+        /// providing 
+        /// </summary>
+        public Type ServiceType { get; set; }
 
     }
 }

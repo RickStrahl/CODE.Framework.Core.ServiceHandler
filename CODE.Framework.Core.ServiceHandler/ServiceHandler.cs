@@ -6,17 +6,17 @@ namespace CODE.Framework.Core.ServiceHandler
     public class ServiceHandler
     {
         HttpContext Context { get; }
-        ServiceHandlerServiceInstance ServiceInstance {get;}
+        ServiceHandlerConfigurationInstance ServiceConfigInstance {get;}
 
-        public ServiceHandler(HttpContext context, ServiceHandlerServiceInstance service)
+        public ServiceHandler(HttpContext context, ServiceHandlerConfigurationInstance serviceConfig)
         {
             Context = context;
-            ServiceInstance = service;
+            ServiceConfigInstance = serviceConfig;
         }
 
         public void ProcessRequest()
         {
-            Context.Response.WriteAsync("Service Handler: " + this.ServiceInstance.ServiceTypeName);            
+            Context.Response.WriteAsync("Service Handler: " + this.ServiceConfigInstance.ServiceTypeName);            
         }
     }
 }
