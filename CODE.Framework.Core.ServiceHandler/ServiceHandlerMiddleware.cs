@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 
 namespace CODE.Framework.Core.ServiceHandler
 {
@@ -18,11 +21,18 @@ namespace CODE.Framework.Core.ServiceHandler
             _next = next;
         }
 
-        public Task Invoke(HttpContext context)
+        public Task Invoke( HttpContext context,
+                            IHostingEnvironment host)
         {
-            var handler = new ServiceHandler(context);
+            var requestPath = context.Request.Path.ToString().ToLower();
+            var service = ServiceHandlerConfiguration.Current.Services.FirstOrDefault(sv => requestPath.StartsWith(sv.RouteBasePath.ToLower()));
+            if (service == null)
+                return _next(context);
+            
+            var handler = new ServiceHandler(context,service);
+            handler.ProcessRequest();
 
-            context.Response.WriteAsync("Made it into the Service handler: " + context.Request.Path);
+            //context.Response.WriteAsync("Made it into the Service handler: " + context.Request.Path);
 
             // Call the next delegate/middleware in the pipeline
             return Task.CompletedTask; //return _next(context);
