@@ -47,21 +47,7 @@ namespace CODE.Framework.Core.ServiceHandler
             return services;
         }
 
-        public static IApplicationBuilder UseServiceHandler(
-            this IApplicationBuilder appBuilder)
-        {
-            var config = ServiceHandlerConfiguration.Current;
 
-            foreach (var service in config.Services)
-            {
-                appBuilder.Map(service.RouteBasePath, builder =>
-                {
-                    
-                });
-            }
-
-            return appBuilder.UseMiddleware<ServiceHandlerMiddleware>();
-        }
 
     }
 }

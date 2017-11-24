@@ -31,13 +31,13 @@ namespace CODE.Framework.Core.ServiceHandler.Web
                     {
                         ServiceTypeName = "UserService",
                         AssemblyName = null,
-                        RouteBasePath = "api/users/"
+                        RouteBasePath = "/api/users"
                     },
                     new ServiceHandlerServiceInstance
                     {
                         ServiceTypeName = "CustomerService",
                         AssemblyName = null,
-                        RouteBasePath = "api/customers/"
+                        RouteBasePath = "/api/customers"
                     }
                 });
             });
