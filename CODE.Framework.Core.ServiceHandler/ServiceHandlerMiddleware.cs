@@ -22,7 +22,7 @@ namespace CODE.Framework.Core.ServiceHandler
         {
             var handler = new ServiceHandler(context);
 
-            context.Response.WriteAsync("Made it into the Service handler: " + context.Request.PathBase);
+            context.Response.WriteAsync("Made it into the Service handler: " + context.Request.Path);
 
             // Call the next delegate/middleware in the pipeline
             return Task.CompletedTask; //return _next(context);
@@ -44,7 +44,18 @@ namespace CODE.Framework.Core.ServiceHandler
 
             foreach (var service in config.Services)
             {                
-                appBuilder.Map(service.RouteBasePath, builder =>
+                appBuilder.MapWhen(
+                  context =>
+                  {
+                      var requestPath = context.Request.Path.ToString().ToLower();
+                      var servicePath = service.RouteBasePath.ToLower();
+                      bool matched = 
+                            requestPath == servicePath ||    
+                            requestPath.StartsWith(servicePath + "/");
+
+                      return matched;
+                  }, 
+                builder =>
                 {
                     builder.UseMiddleware<ServiceHandlerMiddleware>();
                 });
