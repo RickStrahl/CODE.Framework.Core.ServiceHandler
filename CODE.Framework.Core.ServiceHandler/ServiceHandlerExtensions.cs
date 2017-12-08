@@ -1,9 +1,11 @@
 ﻿using System;
+using CODE.Framework.Core.ServiceHandler.Properties;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Westwind.Utilities;
 
 namespace CODE.Framework.Core.ServiceHandler
 {
@@ -44,10 +46,58 @@ namespace CODE.Framework.Core.ServiceHandler
             
             optionsAction?.Invoke(config);
 
+            foreach(var svc in config.Services)
+            {
+                if (svc.ServiceType == null)
+                {
+                    Type type = ReflectionUtils.GetTypeFromName(svc.ServiceTypeName);
+                    if (type == null)
+                    {
+                        if (ReflectionUtils.LoadAssembly(svc.AssemblyName) == null)
+                            throw new ArgumentException(string.Format(Resources.InvalidServiceType, svc.ServiceTypeName));
+                        type = ReflectionUtils.GetTypeFromName(svc.ServiceTypeName);
+                        if (type == null)
+                            throw new ArgumentException(string.Format(Resources.InvalidServiceType, svc.ServiceTypeName));
+                    }
+                    svc.ServiceType = type;
+                }
+            }
+            
             return services;
         }
 
 
+        /// <summary>
+        /// Hook up routed maps to service handlers.
+        /// </summary>
+        /// <param name="appBuilder"></param>
+        /// <returns></returns>
+        public static IApplicationBuilder UseServiceHandler(
+            this IApplicationBuilder appBuilder)
+        {
+            var config = ServiceHandlerConfiguration.Current;
+
+            foreach (var service in config.Services)
+            {
+                appBuilder.MapWhen(
+                  context =>
+                  {
+                      var requestPath = context.Request.Path.ToString().ToLower();
+                      var servicePath = service.RouteBasePath.ToLower();
+                      bool matched =
+                            requestPath == servicePath ||
+                            requestPath.StartsWith(servicePath + "/");
+
+                      return matched;
+                  },
+                builder =>
+                {
+                    builder.UseMiddleware<ServiceHandlerMiddleware>();
+                });
+            }
+
+            return appBuilder;
+        }
 
     }
 }

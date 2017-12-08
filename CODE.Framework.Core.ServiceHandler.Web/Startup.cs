@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Sample.Services.Implementation;
 
 namespace CODE.Framework.Core.ServiceHandler.Web
 {
@@ -29,20 +30,24 @@ namespace CODE.Framework.Core.ServiceHandler.Web
                 {
                     new ServiceHandlerConfigurationInstance
                     {
-                        ServiceTypeName = "UserService",
-                        AssemblyName = null,
+                        ServiceTypeName = "Sample.Services.Implementation.UserService",
+                        AssemblyName = "Sample.Services.Implementation",
+                        //ServiceType = typeof(UserService),
                         RouteBasePath = "/api/users"
                     },
-                    new ServiceHandlerConfigurationInstance
-                    {
-                        ServiceTypeName = "CustomerService",
-                        AssemblyName = null,
-                        RouteBasePath = "/api/customers"
-                    }
+                    //new ServiceHandlerConfigurationInstance
+                    //{
+                    //    ServiceTypeName = "CustomerService",
+                    //    AssemblyName = "CustomerService",
+                    //    RouteBasePath = "/api/customers"
+                    //}
                 });
             });
             
-            services.AddMvc();
+            services.AddMvc(opt=>
+            {
+                
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

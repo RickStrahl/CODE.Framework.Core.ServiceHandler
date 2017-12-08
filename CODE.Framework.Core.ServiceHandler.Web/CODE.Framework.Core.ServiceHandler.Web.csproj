@@ -18,6 +18,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CODE.Framework.Core.ServiceHandler\CODE.Framework.Core.ServiceHandler.csproj" />
+    <ProjectReference Include="..\Sample.Contracts\Sample.Contracts.csproj" />
+    <ProjectReference Include="..\Sample.Services.Implementation\Sample.Services.Implementation.csproj" />
   </ItemGroup>
 
 </Project>
