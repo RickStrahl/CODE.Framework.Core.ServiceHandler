@@ -37,7 +37,7 @@ namespace CODE.Framework.Core.ServiceHandler
         /// You have to also specify the AssemblyName
         /// </summary>
         public string ServiceTypeName { get; set; }
-        
+
 
         /// <summary>
         /// If specifying a type name you also have to specify the
@@ -50,6 +50,8 @@ namespace CODE.Framework.Core.ServiceHandler
         /// Example: /api/users
         /// </summary>
         public string RouteBasePath { get; set; }
+
+        public ControllerHttpsMode HttpsMode { get; set; } = ControllerHttpsMode.Http;
 
         /// <summary>
         /// Optional hook method fired before the service method

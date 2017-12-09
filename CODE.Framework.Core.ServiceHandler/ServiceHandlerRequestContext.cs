@@ -15,6 +15,16 @@ namespace CODE.Framework.Core.ServiceHandler
         public object ResultValue { get; set; }
 
         public string ResultJson { get; set; }
+    
+        public ServiceHandlerRequestContextUrl Url { get; set; } = new ServiceHandlerRequestContextUrl();        
+    }
+
+    public class ServiceHandlerRequestContextUrl
+    {
+        public string Url { get; internal set; }
+        public string UrlPath { get; internal set; }
+        public QueryString QueryString { get; internal set; }
+        public string HttpMethod { get; internal set; }
     }
 }
 

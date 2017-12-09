@@ -68,5 +68,32 @@ namespace CODE.Framework.Core.ServiceHandler.Properties {
                 return ResourceManager.GetString("InvalidServiceType", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Service method {0} doesn&apos;t exist or can&apos;t be called with Http Verb {1}. Method not invoked..
+        /// </summary>
+        internal static string ServiceMethodDoesntExist {
+            get {
+                return ResourceManager.GetString("ServiceMethodDoesntExist", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Service must be called over a secure connection (HTTPS).
+        /// </summary>
+        internal static string ServiceMustBeAccessedOverHttps {
+            get {
+                return ResourceManager.GetString("ServiceMustBeAccessedOverHttps", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unable to execute method {0}: {1}.
+        /// </summary>
+        internal static string UnableToExecuteMethod {
+            get {
+                return ResourceManager.GetString("UnableToExecuteMethod", resourceCulture);
+            }
+        }
     }
 }

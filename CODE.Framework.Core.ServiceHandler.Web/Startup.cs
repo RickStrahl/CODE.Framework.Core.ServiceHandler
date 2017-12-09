@@ -29,18 +29,18 @@ namespace CODE.Framework.Core.ServiceHandler.Web
                 config.Services.AddRange(new List<ServiceHandlerConfigurationInstance>
                 {
                     new ServiceHandlerConfigurationInstance
-                    {
-                        ServiceTypeName = "Sample.Services.Implementation.UserService",
-                        AssemblyName = "Sample.Services.Implementation",
-                        //ServiceType = typeof(UserService),
+                    {                        
+                        ServiceType = typeof(UserService),
+                        //ServiceTypeName = "Sample.Services.Implementation.UserService",
+                        //AssemblyName = "Sample.Services.Implementation",
                         RouteBasePath = "/api/users"
                     },
-                    //new ServiceHandlerConfigurationInstance
-                    //{
-                    //    ServiceTypeName = "CustomerService",
-                    //    AssemblyName = "CustomerService",
-                    //    RouteBasePath = "/api/customers"
-                    //}
+                    new ServiceHandlerConfigurationInstance
+                    {
+                        ServiceTypeName = "Sample.Services.Implementation.CustomerService",
+                        AssemblyName = "Sample.Services.Implementation",
+                        RouteBasePath = "/api/customers"
+                    }
                 });
             });
             

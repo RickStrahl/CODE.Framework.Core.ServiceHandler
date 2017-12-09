@@ -14,7 +14,7 @@ namespace Sample.Contracts
         [Rest(Method = RestMethods.Get)]
         SignoutResponse Signout(SignoutRequest request);
 
-        [Rest(Method = RestMethods.Get)]
+        [Rest(Method = RestMethods.Post)]
         IsAuthenticatedResponse IsAuthenticated(IsAuthenticatedRequest request);
 
         [Rest(Method = RestMethods.Get)]
@@ -28,40 +28,7 @@ namespace Sample.Contracts
     }
 
 
-    [DataContract]
-    public class BaseServiceResponse
-    {
-        public BaseServiceResponse()
-        {
-            Success = true;
-        }
 
-        /// <summary>
-        /// Gets or sets the success.
-        /// </summary>
-        /// <value>The success.</value>
-        [DataMember(IsRequired = true)]
-        public bool Success { get; set; }
-
-
-        [DataMember(IsRequired = true)]
-        public string FailureInformation { get; set; }
-
-        public void SetError(string message, Exception ex = null)
-        {
-            if (message != null)
-            {
-                Success = false;
-                FailureInformation = message;
-            }
-            else
-            {
-                Success = true;
-                FailureInformation = null;
-            }
-        }
-
-    }
 
     public class GetUserRequest : BaseServiceRequest
     {

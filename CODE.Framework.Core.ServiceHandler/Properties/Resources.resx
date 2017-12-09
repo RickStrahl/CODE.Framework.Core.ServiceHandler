@@ -120,4 +120,13 @@
   <data name="InvalidServiceType" xml:space="preserve">
     <value>Invalid Service type: {0}</value>
   </data>
+  <data name="ServiceMethodDoesntExist" xml:space="preserve">
+    <value>Service method {0} doesn't exist or can't be called with Http Verb {1}. Method not invoked.</value>
+  </data>
+  <data name="ServiceMustBeAccessedOverHttps" xml:space="preserve">
+    <value>Service must be called over a secure connection (HTTPS)</value>
+  </data>
+  <data name="UnableToExecuteMethod" xml:space="preserve">
+    <value>Unable to execute method {0}: {1}</value>
+  </data>
 </root>

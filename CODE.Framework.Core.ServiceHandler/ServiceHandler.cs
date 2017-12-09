@@ -1,7 +1,13 @@
 ﻿using System;
+using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
+using CODE.Framework.Core.ServiceHandler.Properties;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Routing;
+using Newtonsoft.Json;
 using Westwind.Utilities;
 
 namespace CODE.Framework.Core.ServiceHandler
@@ -23,23 +29,254 @@ namespace CODE.Framework.Core.ServiceHandler
 
         public async Task ProcessRequest()
         {
-            var context = new ServiceHandlerRequestContext() {
-                 HttpContext = HttpContext,
-                 ServiceConfig = ServiceConfigInstance
+            var context = new ServiceHandlerRequestContext()
+            {
+                HttpContext = HttpContext,
+                ServiceConfig = ServiceConfigInstance,
+
+                Url = new ServiceHandlerRequestContextUrl()
+                {
+                    Url = UriHelper.GetDisplayUrl(HttpContext.Request),
+                    UrlPath = HttpContext.Request.Path.Value.ToString(),
+                    QueryString = HttpContext.Request.QueryString,
+                    HttpMethod = HttpContext.Request.Method.ToUpper()
+                }
             };
 
+            try
+            {
+                if (context.ServiceConfig.HttpsMode == ControllerHttpsMode.RequireHttps && HttpContext.Request.Scheme != "https")
+                    throw new UnauthorizedAccessException(Resources.ServiceMustBeAccessedOverHttps);
 
-            if (ServiceConfigInstance.OnAfterMethodInvoke != null)
-                await ServiceConfigInstance.OnBeforeMethodInvoke(context);
+                if (ServiceConfigInstance.OnAfterMethodInvoke != null)
+                    await ServiceConfigInstance.OnBeforeMethodInvoke(context);
 
-            var inst = ReflectionUtils.CreateInstanceFromType(ServiceConfigInstance.ServiceType);
-            await HttpContext.Response.WriteAsync("Service Handler: " + inst);
+                await ExecuteMethod(context);
 
-            if (ServiceConfigInstance.OnAfterMethodInvoke != null)
-                await ServiceConfigInstance.OnBeforeMethodInvoke(context);
-            
-            //string method = routeContext.RouteData.Values[]
+                ServiceConfigInstance.OnAfterMethodInvoke?.Invoke(context);
+
+                if (string.IsNullOrEmpty(context.ResultJson))
+                    context.ResultJson = JsonSerializationUtils.Serialize(context.ResultValue);
+
+                SendJsonResponse(context, context.ResultValue);
+            }
+            catch(Exception ex)
+            {
+                var error = new ErrorResponse(ex);
+                SendJsonResponse(context, error);
+            }
         }
+
+
+        public async Task ExecuteMethod(ServiceHandlerRequestContext handlerContext)
+        {
+            // get the adjusted - methodname.
+            var lowerPath = handlerContext.Url.UrlPath;
+            if (!lowerPath.EndsWith("/"))
+                lowerPath += "/";
+            var basePath = ServiceConfigInstance.RouteBasePath;
+            if (!basePath.EndsWith("/"))
+                basePath += "/";
+            var path = lowerPath.Replace(basePath, "");
+
+            var pathTokens = path.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries );
+
+            string method;
+            if (string.IsNullOrEmpty(path))
+                method = "Get";
+            else
+            {                
+                method = pathTokens[0];
+            }
+
+            var serviceType = handlerContext.ServiceConfig.ServiceType;
+            var inst = ReflectionUtils.CreateInstanceFromType(serviceType);
+
+
+            // No explicitly defined contract interface found. Therefore, we try to use one implicitly
+            var interfaces = serviceType.GetInterfaces();
+            if (interfaces.Length != 1) throw new NotSupportedException("The hosted service contract must implement a service interface");
+            var contractType = interfaces[0];
+
+            
+            var methodToInvoke = GetMethodNameFromUrlFragmentAndContract(path, handlerContext.Url.HttpMethod, contractType);
+            if (methodToInvoke == null)
+            {
+                methodToInvoke = GetMethodNameFromUrlFragmentAndContract(path, handlerContext.Url.HttpMethod, serviceType);
+                if (methodToInvoke == null)
+                    throw new InvalidOperationException(string.Format(Resources.ServiceMethodDoesntExist, method, handlerContext.Url.HttpMethod));
+            }
+
+
+            object[] parameterList = new object[] { };
+            object result = null;
+
+            if(HttpContext.Request.ContentLength > 0)
+            {
+                // simplistic - no parameters or single body post parameter
+                var paramInfos = methodToInvoke.GetParameters();
+                if (paramInfos.Length > 0)
+                {
+                    var parm = paramInfos[0];
+
+                    JsonSerializer serializer = new JsonSerializer();
+
+                    using (var sw = new StreamReader(HttpContext.Request.Body))
+                    using (JsonReader reader = new JsonTextReader(sw))
+                    {
+                        var parameterData = serializer.Deserialize(reader, parm.ParameterType);
+                        parameterList = new object[] { parameterData };
+                    }
+                }
+            }
+
+            try
+            {
+                handlerContext.ResultValue = methodToInvoke.Invoke(inst, parameterList);
+            }
+            catch(Exception ex)
+            {
+                throw new InvalidOperationException(string.Format(Resources.UnableToExecuteMethod, methodToInvoke.Name,ex.Message));
+            }
+
+            
+            return;
+        }
+
+        static void SendJsonResponse(ServiceHandlerRequestContext context, object value)
+        {
+            var response = context.HttpContext.Response;
+
+            response.ContentType = "application/json";
+
+            JsonSerializer serializer = new JsonSerializer();
+#if DEBUG
+            serializer.Formatting = Formatting.Indented;
+#endif
+            using (var sw = new StreamWriter(response.Body))
+            {
+                using (JsonWriter writer = new JsonTextWriter(sw))
+                {
+                    serializer.Serialize(writer, value);
+                }                
+            }        
+        }
+
+        /// <summary>
+        /// Extracts the name of the method a REST call was aimed at based on the provided url "fragment" (URL minus the root URL part and minus the method name),
+        /// the HTTP method (get, post, put, ...) and the contract type
+        /// </summary>
+        /// <param name="urlFragment">The URL fragment.</param>
+        /// <param name="httpMethod">The HTTP method.</param>
+        /// <param name="serviceType">Service contract type.</param>
+        /// <returns>Method picked as a match within the contract (or null if no matching method was found)</returns>
+        /// <remarks>
+        /// Methods are picked based on a number of parameters for each fragment and HTTP method.
+        /// 
+        /// Example URL Fragment: /CustomerSearch/Smith (HTTP-GET)
+        /// 
+        /// In this case, the "CustomerSearch" part of the fragment is considered a good candidate for a method name match.
+        /// The method thus looks at the contract definition and searches for methods of the same name (case insensitive!)
+        /// as well as the Rest(Name="xxx") attribute on each method to see if there is a match. If a match is found, the HTTP-Method is also
+        /// compared and has to be a match (there could be two methods of the same exposed name, but differing HTTP methods/verbs).
+        /// 
+        /// If no matching method is found, "CustomerSearch" is considered to be a parameter rather than a method name, and therefore, the method
+        /// name is assumed to be empty (the default method). Therefore, a method with a [Rest(Name="")] with a matching HTTP method is searched for.
+        /// For a complete match, the method in question would thus have to have the following attribute declared: [Rest(Name="", Method=RestMethods.Get)]
+        /// </remarks>
+        public static MethodInfo GetMethodNameFromUrlFragmentAndContract(string urlFragment, string httpMethod, Type serviceType)
+        {
+
+            var tokens = urlFragment.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+
+            var urlMethod = tokens[0];
+            string[] parameters = { };
+            if (tokens.Length > 1)
+                parameters = tokens.Skip(1).ToArray();
+            
+            var methodInfos = serviceType.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.InvokeMethod | BindingFlags.IgnoreCase);
+            
+            // We first check for named methods
+            foreach (var method in methodInfos)
+            {
+                var mi = FindMethod(method,urlMethod, httpMethod);
+                if (mi != null)
+                    return mi;                
+            }
+
+
+            var localMethod = serviceType.GetMethod(urlMethod, BindingFlags.Instance | BindingFlags.Public | BindingFlags.InvokeMethod | BindingFlags.IgnoreCase);
+            return FindMethod(localMethod, urlMethod, httpMethod);
+
+            //// If we haven't found anything yet, we check for default methods
+            //foreach (var method in methodInfos)
+            //{
+            //    var restAttribute = GetRestAttribute(method);
+            //    if (!string.IsNullOrEmpty(restAttribute.Name)) continue; // We are now only intersted in the empty ones
+            //    var httpMethodForMethod = restAttribute.Method.ToString().ToUpper();
+            //    if (restAttribute.Name != null)
+            //    {
+            //        if (string.IsNullOrEmpty(restAttribute.Name) && string.Equals(httpMethodForMethod, httpMethod, StringComparison.OrdinalIgnoreCase))
+            //            return method;
+            //        if (string.IsNullOrEmpty(restAttribute.Name) && httpMethodForMethod == "POSTORPUT" && (string.Equals("POST", httpMethod, StringComparison.OrdinalIgnoreCase) || string.Equals("PUT", httpMethod, StringComparison.OrdinalIgnoreCase)))
+            //            return method;
+            //    }
+            //}
+
+            //return null;
+        }
+
+
+        static MethodInfo FindMethod(MethodInfo method,string urlMethod, string httpMethod)
+        {          
+            var restAttribute = GetRestAttribute(method);
+            var methodName = method.Name;
+            if (restAttribute != null && restAttribute.Name != null) methodName = restAttribute.Name;
+            var httpMethodForMethod = restAttribute?.Method.ToString().ToUpper() ?? "GET";
+            if (httpMethodForMethod == httpMethod && string.Equals(methodName, urlMethod, StringComparison.CurrentCultureIgnoreCase))
+                return method;
+            if (httpMethodForMethod == "POSTORPUT" &&
+                (string.Equals("POST", httpMethod, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals("PUT", httpMethod, StringComparison.OrdinalIgnoreCase)) &&
+                string.Equals(methodName, urlMethod, StringComparison.CurrentCultureIgnoreCase))
+                return method;
+
+            return null;
+        }
+
+        /// <summary>
+        /// Extracts the RestAttribute from a method's attributes
+        /// </summary>
+        /// <param name="method">The method to be inspected</param>
+        /// <returns>The applied RestAttribute or a default RestAttribute.</returns>
+        public static RestAttribute GetRestAttribute(MethodInfo method)
+        {
+            var customAttributes = method.GetCustomAttributes(typeof(RestAttribute), true);
+            if (customAttributes.Length <= 0) return new RestAttribute();
+            var restAttribute = customAttributes[0] as RestAttribute;
+            return restAttribute ?? new RestAttribute();
+        }
+
+        ///// <summary>
+        ///// Extracts the RestUrlParameterAttribute from a property's attributes
+        ///// </summary>
+        ///// <param name="property">The property.</param>
+        ///// <returns>The applied RestUrlParameterAttribute or a default RestUrlParameterAttribute</returns>
+        //public static RestUrlParameterAttribute GetRestUrlParameterAttribute(PropertyInfo property)
+        //{
+        //    var customAttributes = property.GetCustomAttributes(typeof(RestUrlParameterAttribute), true);
+        //    if (customAttributes.Length <= 0) return new RestUrlParameterAttribute();
+        //    var restAttribute = customAttributes[0] as RestUrlParameterAttribute;
+        //    return restAttribute ?? new RestUrlParameterAttribute();
+        //}
+    }
+
+    public enum ControllerHttpsMode
+    {
+        Undefined,
+        Http,
+        RequireHttps,
+        RequireHttpsExceptLocalhost
     }
 }
 

@@ -34,9 +34,4 @@ namespace CODE.Framework.Core.ServiceHandler
             return;
         }
     }
-
-    public static class ServiceHandlerMiddlewareExtensions
-    {
-
-    }
 }
