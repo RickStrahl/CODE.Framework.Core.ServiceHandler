@@ -8,7 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Sample.Services.Implementation;
+//using Sample.Services.Implementation;
 
 namespace CODE.Framework.Core.ServiceHandler.Web
 {

@@ -29,27 +29,8 @@ namespace CODE.Framework.Core.ServiceHandler
             var serviceConfiguration = provider.GetService<IConfiguration>();
 
 
-            ServiceHandlerConfiguration configData = new ServiceHandlerConfiguration();
-            serviceConfiguration.Bind("ServiceHandler", configData);
-
-          
-            //var section = serviceConfiguration.GetSection("ServiceHandler");
-            //// read settings from DbResourceConfiguration in Appsettings.json
-            //services.Configure<ServiceHandlerConfiguration>(section);
-
-
-
-            //provider = services.BuildServiceProvider();
-            //var configData = provider.GetRequiredService<IOptions<ServiceHandlerConfiguration>>();
-
-            ServiceHandlerConfiguration config;
-
-            //if (configData != null && configData.Value != null )
-            //    config = configData.Value;                
-            //else
-            //   config = new ServiceHandlerConfiguration();
-
-            config = configData;
+            var config = new ServiceHandlerConfiguration();
+            serviceConfiguration.Bind("ServiceHandler", config);
 
             ServiceHandlerConfiguration.Current = config;
             
