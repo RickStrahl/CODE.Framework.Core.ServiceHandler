@@ -20,7 +20,7 @@ namespace CODE.Framework.Core.ServiceHandler
         /// <param name="services"></param>
         /// <param name="optionsAction"></param>
         /// <returns></returns>
-        public static IServiceCollection AddServiceHandler(this IServiceCollection services, Action<ServiceHandlerConfiguration> optionsAction)
+        public static IServiceCollection AddServiceHandler(this IServiceCollection services,  Action<ServiceHandlerConfiguration> optionsAction)
         {
             // add strongly typed configuration
             services.AddOptions();
@@ -28,19 +28,28 @@ namespace CODE.Framework.Core.ServiceHandler
             var provider = services.BuildServiceProvider();
             var serviceConfiguration = provider.GetService<IConfiguration>();
 
-            var section = serviceConfiguration.GetSection("ServiceHandlerConfiguration");
-            // read settings from DbResourceConfiguration in Appsettings.json
-            services.Configure<ServiceHandlerConfiguration>(section);
-            
-            provider = services.BuildServiceProvider();
-            var configData = provider.GetRequiredService<IOptions<ServiceHandlerConfiguration>>();
+
+            ServiceHandlerConfiguration configData = new ServiceHandlerConfiguration();
+            serviceConfiguration.Bind("ServiceHandler", configData);
+
+          
+            //var section = serviceConfiguration.GetSection("ServiceHandler");
+            //// read settings from DbResourceConfiguration in Appsettings.json
+            //services.Configure<ServiceHandlerConfiguration>(section);
+
+
+
+            //provider = services.BuildServiceProvider();
+            //var configData = provider.GetRequiredService<IOptions<ServiceHandlerConfiguration>>();
 
             ServiceHandlerConfiguration config;
 
-            if (configData != null && configData.Value != null )
-                config = configData.Value;                
-            else
-               config = new ServiceHandlerConfiguration();
+            //if (configData != null && configData.Value != null )
+            //    config = configData.Value;                
+            //else
+            //   config = new ServiceHandlerConfiguration();
+
+            config = configData;
 
             ServiceHandlerConfiguration.Current = config;
             

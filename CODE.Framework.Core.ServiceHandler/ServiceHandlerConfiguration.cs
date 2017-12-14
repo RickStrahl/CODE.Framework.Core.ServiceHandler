@@ -66,4 +66,9 @@ namespace CODE.Framework.Core.ServiceHandler
         public Func<ServiceHandlerRequestContext, Task> OnAfterMethodInvoke { get; set; }
         
     }
+
+    public class Test
+    {
+        public string TestString { get; set; }
+    }
 }
