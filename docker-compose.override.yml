@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+  code.framework.core.servicehandler.web:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "80"
