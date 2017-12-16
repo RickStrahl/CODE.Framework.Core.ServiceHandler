@@ -167,7 +167,7 @@ namespace CODE.Framework.Core.ServiceHandler
         /// the HTTP method (get, post, put, ...) and the contract type
         /// </summary>
         /// <param name="urlFragment">The URL fragment.</param>
-        /// <param name="httpMethod">The HTTP method.</param>
+        /// <param name="httpMethod">The HTTP method. Note: Can by string.empty for extensionless URL</param>
         /// <param name="serviceType">Service contract type.</param>
         /// <returns>Method picked as a match within the contract (or null if no matching method was found)</returns>
         /// <remarks>
@@ -189,7 +189,12 @@ namespace CODE.Framework.Core.ServiceHandler
 
             var tokens = urlFragment.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
 
-            var urlMethod = tokens[0];
+            string urlMethod;
+            if (tokens.Length == 0)
+                urlMethod = string.Empty;
+            else
+                urlMethod = tokens[0];
+
             string[] parameters = { };
             if (tokens.Length > 1)
                 parameters = tokens.Skip(1).ToArray();
@@ -231,7 +236,8 @@ namespace CODE.Framework.Core.ServiceHandler
         {          
             var restAttribute = GetRestAttribute(method);
             var methodName = method.Name;
-            if (restAttribute != null && restAttribute.Name != null) methodName = restAttribute.Name;
+            if (restAttribute != null && restAttribute.Name != null)
+                methodName = restAttribute.Name;
             var httpMethodForMethod = restAttribute?.Method.ToString().ToUpper() ?? "GET";
             if (httpMethodForMethod == httpMethod && string.Equals(methodName, urlMethod, StringComparison.CurrentCultureIgnoreCase))
                 return method;

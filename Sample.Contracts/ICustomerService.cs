@@ -6,7 +6,7 @@ namespace Sample.Contracts
 {
     public interface ICustomerService
     {
-        [Rest(Method = RestMethods.Get)]
+        [Rest(Method = RestMethods.Get,Name="")]
         GetCustomersResponse GetCustomers();
 
         [Rest(Method = RestMethods.Post)]

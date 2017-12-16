@@ -9,28 +9,6 @@ namespace Sample.Services.Implementation
     public class CustomerService : ICustomerService
     {
 
-        /// <summary>
-        /// Simulate User Principal 
-        /// </summary>
-        public ClaimsPrincipal User
-        {
-            get
-            {
-                if (_user == null)
-                    _user = Thread.CurrentPrincipal as ClaimsPrincipal;
-
-                return _user;
-            }
-        }
-        private ClaimsPrincipal _user = null;
-
-     
-
-        public CustomerService()
-        {
-            
-        }
-
         public GetCustomersResponse GetCustomers()
         {
             return new GetCustomersResponse()
