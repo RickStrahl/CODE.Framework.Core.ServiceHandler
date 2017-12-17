@@ -54,6 +54,12 @@ namespace CODE.Framework.Core.ServiceHandler
         public string RouteBasePath { get; set; }
 
         public ControllerHttpsMode HttpsMode { get; set; } = ControllerHttpsMode.Http;
+
+
+        /// <summary>
+        /// Determines how 
+        /// </summary>
+        public JsonFormatModes JsonFormatMode { get; set; } = JsonFormatModes.CamelCase;
         
 
         /// <summary>
@@ -69,4 +75,11 @@ namespace CODE.Framework.Core.ServiceHandler
         public Func<ServiceHandlerRequestContext, Task> OnAfterMethodInvoke { get; set; }
         
     }
+
+    public enum JsonFormatModes
+    {
+        CamelCase,
+        ProperCase
+    }
 }
+

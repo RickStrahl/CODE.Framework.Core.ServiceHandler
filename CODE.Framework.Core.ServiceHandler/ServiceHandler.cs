@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Routing;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using Westwind.Utilities;
 
 namespace CODE.Framework.Core.ServiceHandler
@@ -97,9 +98,13 @@ namespace CODE.Framework.Core.ServiceHandler
             // try to figure out the method to invoke
             // first parameter or empty
             string method = string.Empty;
+            var urlParameterTokens = pathTokens;
             if (pathTokens.Length > 0)
+            {
                 method = pathTokens[0];
-            
+                urlParameterTokens = pathTokens.Skip(1).ToArray();
+            }
+
             // pick up the configured service implementation type and create an instance
             var serviceType = handlerContext.ServiceConfig.ServiceType;
             var inst = ReflectionUtils.CreateInstanceFromType(serviceType);
@@ -110,8 +115,9 @@ namespace CODE.Framework.Core.ServiceHandler
             // No explicitly defined contract interface found. Therefore, we try to use one implicitly
             var interfaces = serviceType.GetInterfaces();
             if (interfaces.Length < 1)
-                throw new NotSupportedException("The hosted service contract must implement a service interface.");
+                throw new NotSupportedException(Resources.HostedServiceRequiresAnInterface);
 
+            // assume service interface is first interface
             var contractType = interfaces[0];
             
             var methodToInvoke = GetMethodNameFromUrlFragmentAndContract(path, handlerContext.Url.HttpMethod, contractType);
@@ -123,7 +129,7 @@ namespace CODE.Framework.Core.ServiceHandler
             }
 
 
-            object[] parameterList = new object[] { };
+            var parameterList = new object[] { };
             object result = null;
 
             if(HttpContext.Request.ContentLength > 0)
@@ -135,6 +141,7 @@ namespace CODE.Framework.Core.ServiceHandler
                     var parm = paramInfos[0];
 
                     JsonSerializer serializer = new JsonSerializer();
+                    
 
                     using (var sw = new StreamReader(HttpContext.Request.Body))
                     {
@@ -170,6 +177,10 @@ namespace CODE.Framework.Core.ServiceHandler
 #if DEBUG
             serializer.Formatting = Formatting.Indented;
 #endif
+            var resolver = serializer.ContractResolver as DefaultContractResolver;
+            if (context.ServiceConfig.JsonFormatMode == JsonFormatModes.CamelCase)
+                resolver.NamingStrategy = new CamelCaseNamingStrategy();
+
             using (var sw = new StreamWriter(response.Body))
             {
                 using (JsonWriter writer = new JsonTextWriter(sw))
