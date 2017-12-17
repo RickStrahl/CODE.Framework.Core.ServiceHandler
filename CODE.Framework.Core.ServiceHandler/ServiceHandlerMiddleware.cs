@@ -27,7 +27,7 @@ namespace CODE.Framework.Core.ServiceHandler
                 return;
             }
             
-            var handler = new ServiceHandler(context,serviceConfig);            
+            var handler = new ServiceHandler(context, serviceConfig);            
             await handler.ProcessRequest();
 
             // Call the next delegate/middleware in the pipeline

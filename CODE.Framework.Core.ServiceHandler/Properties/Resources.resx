@@ -126,6 +126,9 @@
   <data name="ServiceMustBeAccessedOverHttps" xml:space="preserve">
     <value>Service must be called over a secure connection (HTTPS)</value>
   </data>
+  <data name="UnableToCreateTypeInstance" xml:space="preserve">
+    <value>Couldn't create type instance: {0}</value>
+  </data>
   <data name="UnableToExecuteMethod" xml:space="preserve">
     <value>Unable to execute method {0}: {1}</value>
   </data>

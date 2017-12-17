@@ -18,7 +18,9 @@ namespace CODE.Framework.Core.ServiceHandler
         /// Holds a list of services that are configured to be handled.
         /// </summary>
         public List<ServiceHandlerConfigurationInstance> Services { get; set; } = new List<ServiceHandlerConfigurationInstance>();
-        
+
+        public ServiceHandlerCorsConfiguration Cors { get; set; } = new ServiceHandlerCorsConfiguration();
+
     }
 
 
@@ -52,6 +54,7 @@ namespace CODE.Framework.Core.ServiceHandler
         public string RouteBasePath { get; set; }
 
         public ControllerHttpsMode HttpsMode { get; set; } = ControllerHttpsMode.Http;
+        
 
         /// <summary>
         /// Optional hook method fired before the service method

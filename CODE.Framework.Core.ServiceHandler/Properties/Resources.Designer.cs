@@ -88,6 +88,15 @@ namespace CODE.Framework.Core.ServiceHandler.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Couldn&apos;t create type instance: {0}.
+        /// </summary>
+        internal static string UnableToCreateTypeInstance {
+            get {
+                return ResourceManager.GetString("UnableToCreateTypeInstance", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unable to execute method {0}: {1}.
         /// </summary>
         internal static string UnableToExecuteMethod {

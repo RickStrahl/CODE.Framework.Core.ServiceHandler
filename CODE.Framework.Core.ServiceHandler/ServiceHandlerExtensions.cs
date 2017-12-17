@@ -52,7 +52,45 @@ namespace CODE.Framework.Core.ServiceHandler
                     svc.ServiceType = type;
                 }
             }
-            
+
+            // Add configured instance to DI
+            services.AddSingleton(config);
+
+            // Add service and create Policy with options
+            services.AddCors(options =>
+            {
+                options.AddPolicy(config.Cors.CorsPolicyName,
+                    builder =>
+                    {
+                        if (config.Cors.AllowedOrigins == "*")
+                            builder = builder.AllowAnyOrigin();
+                        else if (!string.IsNullOrEmpty(config.Cors.AllowedOrigins))
+                        {
+                            var origins = config.Cors.AllowedOrigins.Split(new[] {',', ';'},
+                                StringSplitOptions.RemoveEmptyEntries);
+
+                            builder.WithOrigins(origins);
+                        }
+
+                        if (!string.IsNullOrEmpty(config.Cors.AllowedMethods))
+                        {
+                            var methods = config.Cors.AllowedMethods.Split(new[] {',', ';'},
+                                StringSplitOptions.RemoveEmptyEntries);
+                            builder.WithMethods(methods);
+                        }
+
+                        if (!string.IsNullOrEmpty(config.Cors.AllowedHeaders))
+                        {
+                            var headers = config.Cors.AllowedHeaders.Split(new[] {',', ';'},
+                                StringSplitOptions.RemoveEmptyEntries);
+                            builder.WithHeaders(headers);
+                        }
+
+                        if (config.Cors.AllowCredentials)
+                            builder.AllowCredentials();
+                    });
+            });
+
             return services;
         }
 
@@ -69,6 +107,7 @@ namespace CODE.Framework.Core.ServiceHandler
 
             foreach (var service in config.Services)
             {
+                // conditionally route to service handler base on RouteBasePath
                 appBuilder.MapWhen(
                   context =>
                   {
@@ -82,9 +121,13 @@ namespace CODE.Framework.Core.ServiceHandler
                   },
                 builder =>
                 {
+                    builder.UseCors(config.Cors.CorsPolicyName);
                     builder.UseMiddleware<ServiceHandlerMiddleware>();
+                    
                 });
             }
+
+        
 
             return appBuilder;
         }

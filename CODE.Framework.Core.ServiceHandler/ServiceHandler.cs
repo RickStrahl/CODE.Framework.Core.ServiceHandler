@@ -16,7 +16,7 @@ namespace CODE.Framework.Core.ServiceHandler
     {
         HttpContext HttpContext { get; }
 
-        ServiceHandlerConfigurationInstance ServiceConfigInstance {get;}
+        ServiceHandlerConfigurationInstance ServiceConfiguration {get;}
 
         IRouteBuilder Routes;
 
@@ -24,7 +24,7 @@ namespace CODE.Framework.Core.ServiceHandler
                               ServiceHandlerConfigurationInstance serviceConfig)
         {
             HttpContext = context;
-            ServiceConfigInstance = serviceConfig;            
+            ServiceConfiguration = serviceConfig;            
         }
 
         public async Task ProcessRequest()
@@ -32,7 +32,7 @@ namespace CODE.Framework.Core.ServiceHandler
             var context = new ServiceHandlerRequestContext()
             {
                 HttpContext = HttpContext,
-                ServiceConfig = ServiceConfigInstance,
+                ServiceConfig = ServiceConfiguration,
 
                 Url = new ServiceHandlerRequestContextUrl()
                 {
@@ -48,12 +48,12 @@ namespace CODE.Framework.Core.ServiceHandler
                 if (context.ServiceConfig.HttpsMode == ControllerHttpsMode.RequireHttps && HttpContext.Request.Scheme != "https")
                     throw new UnauthorizedAccessException(Resources.ServiceMustBeAccessedOverHttps);
 
-                if (ServiceConfigInstance.OnAfterMethodInvoke != null)
-                    await ServiceConfigInstance.OnBeforeMethodInvoke(context);
+                if (ServiceConfiguration.OnAfterMethodInvoke != null)
+                    await ServiceConfiguration.OnBeforeMethodInvoke(context);
 
                 await ExecuteMethod(context);
 
-                ServiceConfigInstance.OnAfterMethodInvoke?.Invoke(context);
+                ServiceConfiguration.OnAfterMethodInvoke?.Invoke(context);
 
                 if (string.IsNullOrEmpty(context.ResultJson))
                     context.ResultJson = JsonSerializationUtils.Serialize(context.ResultValue);
@@ -70,34 +70,49 @@ namespace CODE.Framework.Core.ServiceHandler
 
         public async Task ExecuteMethod(ServiceHandlerRequestContext handlerContext)
         {
+            var config = ServiceHandlerConfiguration.Current;
+
+            var httpVerb = handlerContext.HttpContext.Request.Method;
+
+            if (httpVerb == "OPTIONS" && config.Cors.UseCorsPolicy)
+            {
+                // emty response - ASP.NET will provide CORS headers via applied policy
+                handlerContext.HttpContext.Response.StatusCode = StatusCodes.Status204NoContent;
+                return;
+            }
+
             // get the adjusted - methodname.
             var lowerPath = handlerContext.Url.UrlPath;
             if (!lowerPath.EndsWith("/"))
                 lowerPath += "/";
-            var basePath = ServiceConfigInstance.RouteBasePath;
+
+            var basePath = ServiceConfiguration.RouteBasePath;
             if (!basePath.EndsWith("/"))
                 basePath += "/";
-            var path = lowerPath.Replace(basePath, "");
+            var path = lowerPath.Replace(basePath.ToLower(), "");
 
+            // split out the remaining path tokens
             var pathTokens = path.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries );
 
-            string method;
-            if (string.IsNullOrEmpty(path))
-                method = "Get";
-            else
-            {                
+            // try to figure out the method to invoke
+            // first parameter or empty
+            string method = string.Empty;
+            if (pathTokens.Length > 0)
                 method = pathTokens[0];
-            }
-
+            
+            // pick up the configured service implementation type and create an instance
             var serviceType = handlerContext.ServiceConfig.ServiceType;
             var inst = ReflectionUtils.CreateInstanceFromType(serviceType);
 
-
+            if (inst == null)
+                throw new InvalidOperationException(string.Format(Resources.UnableToCreateTypeInstance, serviceType));
+            
             // No explicitly defined contract interface found. Therefore, we try to use one implicitly
             var interfaces = serviceType.GetInterfaces();
-            if (interfaces.Length != 1) throw new NotSupportedException("The hosted service contract must implement a service interface");
-            var contractType = interfaces[0];
+            if (interfaces.Length < 1)
+                throw new NotSupportedException("The hosted service contract must implement a service interface.");
 
+            var contractType = interfaces[0];
             
             var methodToInvoke = GetMethodNameFromUrlFragmentAndContract(path, handlerContext.Url.HttpMethod, contractType);
             if (methodToInvoke == null)
@@ -122,10 +137,12 @@ namespace CODE.Framework.Core.ServiceHandler
                     JsonSerializer serializer = new JsonSerializer();
 
                     using (var sw = new StreamReader(HttpContext.Request.Body))
-                    using (JsonReader reader = new JsonTextReader(sw))
                     {
-                        var parameterData = serializer.Deserialize(reader, parm.ParameterType);
-                        parameterList = new object[] { parameterData };
+                        using (JsonReader reader = new JsonTextReader(sw))
+                        {
+                            var parameterData = serializer.Deserialize(reader, parm.ParameterType);
+                            parameterList = new object[] {parameterData};
+                        }
                     }
                 }
             }
@@ -201,7 +218,7 @@ namespace CODE.Framework.Core.ServiceHandler
             
             var methodInfos = serviceType.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.InvokeMethod | BindingFlags.IgnoreCase);
             
-            // We first check for named methods
+            // We first check for methods on the interface: Attribute Name and Method
             foreach (var method in methodInfos)
             {
                 var mi = FindMethod(method,urlMethod, httpMethod);
@@ -212,23 +229,7 @@ namespace CODE.Framework.Core.ServiceHandler
 
             var localMethod = serviceType.GetMethod(urlMethod, BindingFlags.Instance | BindingFlags.Public | BindingFlags.InvokeMethod | BindingFlags.IgnoreCase);
             return FindMethod(localMethod, urlMethod, httpMethod);
-
-            //// If we haven't found anything yet, we check for default methods
-            //foreach (var method in methodInfos)
-            //{
-            //    var restAttribute = GetRestAttribute(method);
-            //    if (!string.IsNullOrEmpty(restAttribute.Name)) continue; // We are now only intersted in the empty ones
-            //    var httpMethodForMethod = restAttribute.Method.ToString().ToUpper();
-            //    if (restAttribute.Name != null)
-            //    {
-            //        if (string.IsNullOrEmpty(restAttribute.Name) && string.Equals(httpMethodForMethod, httpMethod, StringComparison.OrdinalIgnoreCase))
-            //            return method;
-            //        if (string.IsNullOrEmpty(restAttribute.Name) && httpMethodForMethod == "POSTORPUT" && (string.Equals("POST", httpMethod, StringComparison.OrdinalIgnoreCase) || string.Equals("PUT", httpMethod, StringComparison.OrdinalIgnoreCase)))
-            //            return method;
-            //    }
-            //}
-
-            //return null;
+           
         }
 
 

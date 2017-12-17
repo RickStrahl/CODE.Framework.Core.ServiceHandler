@@ -50,7 +50,7 @@ Websurge-Request-Name: No Method - should return customerlist
   "CaptureMinimalResponseData": false,
   "MaxResponseSize": 0,
   "ReplaceQueryStringValuePairs": null,
-  "ReplaceDomain": null,
+  "ReplaceDomain": "",
   "ReplaceCookieValue": null,
   "ReplaceAuthorization": null,
   "Username": null,
