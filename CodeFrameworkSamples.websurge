@@ -1,24 +1,30 @@
 POST http://localhost:5008/api/users/IsAuthenticated HTTP/1.1
 Accept-Encoding: gzip,deflate
 Content-type: application/json
+Origin: west-wind.com
 
 {}
 
 ------------------------------------------------------------------
 
-POST http://localhost:5008/api/users/GetUser HTTP/1.1
+POST http://localhost:5008/api/users/user/1234 HTTP/1.1
 Accept-Encoding: gzip,deflate
 Content-type: application/json
-
-{
-  id: "{1234-123-1233-1233}"
-}
 
 ------------------------------------------------------------------
 
 GET http://localhost:5008/api/customers/GetCustomers HTTP/1.1
 Accept-Encoding: gzip,deflate
 Content-type: application/json
+Websurge-Request-Name: GetCustomers - should fail as Name overrides
+
+------------------------------------------------------------------
+
+GET http://localhost:5008/api/customers HTTP/1.1
+Accept-Encoding: gzip,deflate
+Content-type: application/json
+Origin: west-wind.com
+Websurge-Request-Name: No Method - should return customerlist
 
 ------------------------------------------------------------------
 
@@ -32,10 +38,23 @@ Content-type: application/json
 
 ------------------------------------------------------------------
 
-GET http://localhost:5008/api/customers HTTP/1.1
+OPTIONS http://localhost:5008/api/users/IsAuthenticated HTTP/1.1
 Accept-Encoding: gzip,deflate
 Content-type: application/json
-Websurge-Request-Name: No Method - should return customerlist
+Origin: west-wind.com
+Websurge-Request-Name: IsAuthentication - OPTIONS
+
+{}
+
+------------------------------------------------------------------
+
+POST http://localhost:5008/api/customers/Customer_COPIED HTTP/1.1
+Accept-Encoding: gzip,deflate
+Content-type: application/json
+
+{
+  "id": "{0111-1111-11111}"
+}
 
 ------------------------------------------------------------------
 
@@ -43,7 +62,6 @@ Websurge-Request-Name: No Method - should return customerlist
 ----- Start WebSurge Options -----
 
 {
-  "Password": null,
   "NoProgressEvents": false,
   "DelayTimeMs": 0,
   "NoContentDecompression": false,
@@ -54,6 +72,7 @@ Websurge-Request-Name: No Method - should return customerlist
   "ReplaceCookieValue": null,
   "ReplaceAuthorization": null,
   "Username": null,
+  "Password": null,
   "Users": [],
   "RandomizeRequests": false,
   "RequestTimeoutMs": 15000,

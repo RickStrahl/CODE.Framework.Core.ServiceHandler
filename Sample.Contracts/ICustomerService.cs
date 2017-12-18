@@ -6,10 +6,10 @@ namespace Sample.Contracts
 {
     public interface ICustomerService
     {
-        [Rest(Method = RestMethods.Get,Name="")]
+        [Rest(Method = RestMethods.Get, Name="",Route = "")]
         GetCustomersResponse GetCustomers();
 
-        [Rest(Method = RestMethods.Post)]
+        [Rest(Method = RestMethods.Post, Name ="Customer", Route = "{id}")]
         GetCustomerResponse GetCustomer(GetCustomerRequest request);
  
     }

@@ -13,15 +13,19 @@ using Westwind.Utilities;
 
 namespace CODE.Framework.Core.ServiceHandler
 {
-    public class ServiceHandler
+    public class ServiceRouHandler
     {
-        HttpContext HttpContext { get; }
+
+        private HttpRequest HttpRequest { get; }
+        HttpResponse HttpResponse { get;  }
 
         ServiceHandlerConfigurationInstance ServiceConfiguration {get;}
 
         IRouteBuilder Routes;
 
-        public ServiceHandler(HttpContext context, 
+        public ServiceHandler(HttpRequest request,
+                              HttpResponse response,
+                              IRouter router,
                               ServiceHandlerConfigurationInstance serviceConfig)
         {
             HttpContext = context;

@@ -61,6 +61,15 @@ namespace CODE.Framework.Core.ServiceHandler.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The hosted service contract must implement a service interface..
+        /// </summary>
+        internal static string HostedServiceRequiresAnInterface {
+            get {
+                return ResourceManager.GetString("HostedServiceRequiresAnInterface", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Invalid Service type: {0}.
         /// </summary>
         internal static string InvalidServiceType {

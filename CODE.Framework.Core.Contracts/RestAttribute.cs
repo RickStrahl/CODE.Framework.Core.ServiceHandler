@@ -63,6 +63,12 @@ namespace CODE.Framework.Core.ServiceHandler
         /// <value>The name.</value>
         /// <remarks>If the method is an empty string, it is considered to be the root (method name does not have to be specified)</remarks>
         public string Name { get; set; }
+
+
+        /// <summary>
+        /// ASP.NET Core Routing data
+        /// </summary>
+        public string Route { get; set; }
     }
 
     /// <summary>

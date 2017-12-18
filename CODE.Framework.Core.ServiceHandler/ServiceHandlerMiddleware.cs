@@ -11,7 +11,7 @@ namespace CODE.Framework.Core.ServiceHandler
         private readonly RequestDelegate _next;
 
         public ServiceHandlerMiddleware(RequestDelegate next)
-        {
+        {            
             _next = next;
         }
 
@@ -25,8 +25,8 @@ namespace CODE.Framework.Core.ServiceHandler
             {
                 await _next(context);
                 return;
-            }
-            
+            }                        
+
             var handler = new ServiceHandler(context, serviceConfig);            
             await handler.ProcessRequest();
 

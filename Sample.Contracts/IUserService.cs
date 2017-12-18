@@ -8,22 +8,22 @@ namespace Sample.Contracts
     
     public interface IUserService
     {
-        [Rest(Method = RestMethods.Post)]
+        [Rest(Method = RestMethods.Post,Route = "AuthenticateUser")]
         AuthenticateUserResponse AuthenticateUser(AuthenticateUserRequest request);
 
-        [Rest(Method = RestMethods.Get)]
+        [Rest(Method = RestMethods.Get, Route = "signout")]
         SignoutResponse Signout(SignoutRequest request);
 
-        [Rest(Method = RestMethods.Post)]
+        [Rest(Method = RestMethods.Post, Route = "IsAuthenticated")]
         IsAuthenticatedResponse IsAuthenticated(IsAuthenticatedRequest request);
 
-        [Rest(Method = RestMethods.Get)]
+        [Rest(Method = RestMethods.Get,Route = "user/{id}")]    
         GetUserResponse GetUser(GetUserRequest request);
 
-        [Rest(Method = RestMethods.Post)]
+        [Rest(Method = RestMethods.Post, Route = "User")]
         SaveUserResponse SaveUser(SaveUserRequest request);
 
-        [Rest(Method = RestMethods.Post)]
+        [Rest(Method = RestMethods.Post, Route = "resetpassword")]
         ResetPasswordResponse ResetPassword(ResetPasswordRequest request);
     }
 

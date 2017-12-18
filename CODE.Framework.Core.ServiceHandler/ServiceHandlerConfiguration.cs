@@ -79,7 +79,8 @@ namespace CODE.Framework.Core.ServiceHandler
     public enum JsonFormatModes
     {
         CamelCase,
-        ProperCase
+        ProperCase,
+        SnakeCase
     }
 }
 
