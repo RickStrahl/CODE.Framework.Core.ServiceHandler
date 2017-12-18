@@ -10,6 +10,10 @@ namespace CODE.Framework.Core.ServiceHandler
     {
         public HttpContext HttpContext { get; set; }
 
+        public HttpRequest HttpRequest { get; set;  }
+
+        public HttpResponse HttpResponse { get; set; }
+
         public ServiceHandlerConfigurationInstance ServiceConfig { get; set; }
 
         public object ResultValue { get; set; }

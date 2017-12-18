@@ -116,14 +116,14 @@ namespace CODE.Framework.Core.ServiceHandler
             var config = ServiceHandlerConfiguration.Current;
 
 
-            foreach (var service in config.Services)
+            foreach (var serviceConfig in config.Services)
             {
                 // conditionally route to service handler base on RouteBasePath
                 appBuilder.MapWhen(
                     context =>
                     {
                         var requestPath = context.Request.Path.ToString().ToLower();
-                        var servicePath = service.RouteBasePath.ToLower();
+                        var servicePath = serviceConfig.RouteBasePath.ToLower();
                         bool matched =
                             requestPath == servicePath ||
                             requestPath.StartsWith(servicePath.Replace("//", "/") + "/");
@@ -132,18 +132,16 @@ namespace CODE.Framework.Core.ServiceHandler
                     },
                     builder =>
                     {
-
                         builder.UseCors(config.Cors.CorsPolicyName);
-
 
                         // ROUTINE SERVICE HANDLER
                         builder.UseRouter(routeBuilder =>
                         {
-                             var interfaces = service.ServiceType.GetInterfaces();
+                             var interfaces = serviceConfig.ServiceType.GetInterfaces();
                              if (interfaces.Length < 1)
                                     throw new NotSupportedException(Resources.HostedServiceRequiresAnInterface);
 
-                            foreach (var method in service.ServiceType.GetMethods(
+                            foreach (var method in serviceConfig.ServiceType.GetMethods(
                                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.InvokeMethod | BindingFlags.DeclaredOnly))
                             {
                                 // find service contract                                
@@ -158,15 +156,8 @@ namespace CODE.Framework.Core.ServiceHandler
                                 Func<HttpRequest, HttpResponse, RouteData, Task> exec =
                                     async (req, resp, routeData) =>
                                     {
-                                        await resp.WriteAsync(service.ServiceType + " . " + method.Name);
-
-                                        foreach (var kv in routeData.Values)
-                                        {
-                                            await resp.WriteAsync($"\r\n-- {kv.Key} - {kv.Value}");
-                                        }
-
-                                        //var handler = new ServiceHandler(context, serviceConfig);
-                                        //await handler.ProcessRequest();                                
+                                        var handler = new ServiceRouteHandler(req,resp,routeData,serviceConfig,method);
+                                        await handler.ProcessRequest();
                                     };
 
                                 var relativeRoute = restAttribute.Route;
@@ -174,7 +165,8 @@ namespace CODE.Framework.Core.ServiceHandler
                                     relativeRoute = method.Name;
 
                                 string fullRoute =
-                                    (service.RouteBasePath + "/" + relativeRoute).Replace("//", "/");
+                                    (serviceConfig.RouteBasePath + "/" + relativeRoute).Replace("//", "/");
+
                                 if (fullRoute.StartsWith("/"))
                                     fullRoute = fullRoute.Substring(1);
                                 

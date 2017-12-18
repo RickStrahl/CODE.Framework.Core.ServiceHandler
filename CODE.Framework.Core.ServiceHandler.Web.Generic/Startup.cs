@@ -11,8 +11,6 @@ namespace CODE.Framework.Core.ServiceHandler.Web.Generic
         {
             services.AddServiceHandler(config =>
             {
-                // configuration comes from appsettings.j
-
                 //config.Services.AddRange(new List<ServiceHandlerConfigurationInstance>
                 //{
                 //    new ServiceHandlerConfigurationInstance
@@ -34,11 +32,7 @@ namespace CODE.Framework.Core.ServiceHandler.Web.Generic
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
-        {
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
+        {            
             app.UseServiceHandler();
         }
     }

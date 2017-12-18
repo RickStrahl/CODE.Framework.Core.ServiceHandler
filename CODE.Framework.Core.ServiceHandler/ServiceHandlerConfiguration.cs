@@ -19,6 +19,9 @@ namespace CODE.Framework.Core.ServiceHandler
         /// </summary>
         public List<ServiceHandlerConfigurationInstance> Services { get; set; } = new List<ServiceHandlerConfigurationInstance>();
 
+        /// <summary>
+        /// CORS specific configuration settings for the entire service
+        /// </summary>
         public ServiceHandlerCorsConfiguration Cors { get; set; } = new ServiceHandlerCorsConfiguration();
 
     }
@@ -59,9 +62,8 @@ namespace CODE.Framework.Core.ServiceHandler
         /// <summary>
         /// Determines how 
         /// </summary>
-        public JsonFormatModes JsonFormatMode { get; set; } = JsonFormatModes.CamelCase;
+        public JsonFormatModes JsonFormatMode { get; set; } = JsonFormatModes.ProperCase;
         
-
         /// <summary>
         /// Optional hook method fired before the service method
         /// is invoked. Method signature is async.

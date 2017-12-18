@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -13,22 +14,31 @@ using Westwind.Utilities;
 
 namespace CODE.Framework.Core.ServiceHandler
 {
-    public class ServiceRouHandler
+    public class ServiceRouteHandler
     {
 
-        private HttpRequest HttpRequest { get; }
-        HttpResponse HttpResponse { get;  }
+        HttpRequest HttpRequest { get; }
 
-        ServiceHandlerConfigurationInstance ServiceConfiguration {get;}
+        HttpResponse HttpResponse { get; }
 
-        IRouteBuilder Routes;
+        MethodInfo MethodToInvoke { get; }
 
-        public ServiceHandler(HttpRequest request,
+        ServiceHandlerConfigurationInstance ServiceConfiguration { get; }
+
+        RouteData RouteData { get; }
+    
+
+    public ServiceRouteHandler(HttpRequest request,
                               HttpResponse response,
-                              IRouter router,
-                              ServiceHandlerConfigurationInstance serviceConfig)
+                              RouteData routeData,
+                              ServiceHandlerConfigurationInstance serviceConfig,
+                              MethodInfo methodToCall)
         {
-            HttpContext = context;
+            HttpRequest = request;
+            HttpResponse = response;
+            RouteData = routeData;
+            MethodToInvoke = methodToCall;
+
             ServiceConfiguration = serviceConfig;            
         }
 
@@ -36,20 +46,21 @@ namespace CODE.Framework.Core.ServiceHandler
         {
             var context = new ServiceHandlerRequestContext()
             {
-                HttpContext = HttpContext,
+                HttpRequest = HttpRequest,
+                HttpResponse = HttpResponse,
                 ServiceConfig = ServiceConfiguration,
                 Url = new ServiceHandlerRequestContextUrl()
                 {
-                    Url = UriHelper.GetDisplayUrl(HttpContext.Request),
-                    UrlPath = HttpContext.Request.Path.Value.ToString(),
-                    QueryString = HttpContext.Request.QueryString,
-                    HttpMethod = HttpContext.Request.Method.ToUpper()
+                    Url = UriHelper.GetDisplayUrl(HttpRequest),
+                    UrlPath = HttpRequest.Path.Value.ToString(),
+                    QueryString = HttpRequest.QueryString,
+                    HttpMethod = HttpRequest.Method.ToUpper()
                 }
             };
 
             try
             {
-                if (context.ServiceConfig.HttpsMode == ControllerHttpsMode.RequireHttps && HttpContext.Request.Scheme != "https")
+                if (context.ServiceConfig.HttpsMode == ControllerHttpsMode.RequireHttps && HttpRequest.Scheme != "https")
                     throw new UnauthorizedAccessException(Resources.ServiceMustBeAccessedOverHttps);
 
                 if (ServiceConfiguration.OnAfterMethodInvoke != null)
@@ -76,82 +87,76 @@ namespace CODE.Framework.Core.ServiceHandler
         {
             var config = ServiceHandlerConfiguration.Current;
 
-            var httpVerb = handlerContext.HttpContext.Request.Method;
+            var httpVerb = handlerContext.HttpRequest.Method;
 
             if (httpVerb == "OPTIONS" && config.Cors.UseCorsPolicy)
             {
                 // emty response - ASP.NET will provide CORS headers via applied policy
-                handlerContext.HttpContext.Response.StatusCode = StatusCodes.Status204NoContent;
+                handlerContext.HttpResponse.StatusCode = StatusCodes.Status204NoContent;
                 return;
             }
 
-            // get the adjusted - methodname.
-            var lowerPath = handlerContext.Url.UrlPath;
-            if (!lowerPath.EndsWith("/"))
-                lowerPath += "/";
-
-            var basePath = ServiceConfiguration.RouteBasePath;
-            if (!basePath.EndsWith("/"))
-                basePath += "/";
-
-            var path = lowerPath.Replace(basePath.ToLower(), "");
-
-          // pick up the configured service implementation type and create an instance
             var serviceType = handlerContext.ServiceConfig.ServiceType;
             var inst = ReflectionUtils.CreateInstanceFromType(serviceType);
-
             if (inst == null)
                 throw new InvalidOperationException(string.Format(Resources.UnableToCreateTypeInstance, serviceType));
-            
-            // No explicitly defined contract interface found. Therefore, we try to use one implicitly
-            var interfaces = serviceType.GetInterfaces();
-            if (interfaces.Length < 1)
-                throw new NotSupportedException(Resources.HostedServiceRequiresAnInterface);
 
-            // assume service interface is first interface
-            var contractType = interfaces[0];
-            
-            var methodToInvoke = GetMethodNameFromUrlFragmentAndContract(path, handlerContext.Url.HttpMethod, contractType);
-            if (methodToInvoke == null)
-            {
-                methodToInvoke = GetMethodNameFromUrlFragmentAndContract(path, handlerContext.Url.HttpMethod, serviceType);
-                if (methodToInvoke == null)
-                    throw new InvalidOperationException(string.Format(Resources.ServiceMethodDoesntExist, methodToInvoke.Name, handlerContext.Url.HttpMethod));
-            }
-
-
+            // parameter parsing
             var parameterList = new object[] { };
             object result = null;
 
-            if(HttpContext.Request.ContentLength > 0)
-            {
                 // simplistic - no parameters or single body post parameter
-                var paramInfos = methodToInvoke.GetParameters();
+                var paramInfos = MethodToInvoke.GetParameters();
                 if (paramInfos.Length > 0)
                 {
                     var parm = paramInfos[0];
 
                     JsonSerializer serializer = new JsonSerializer();
-                    
 
-                    using (var sw = new StreamReader(HttpContext.Request.Body))
+                    // there's always 1 parameter
+                    object parameterData = null;
+                    if (HttpRequest.ContentLength == null || HttpRequest.ContentLength < 1)
+                        parameterData = ReflectionUtils.CreateInstanceFromType(parm.ParameterType);
+                    else
                     {
+                        using (var sw = new StreamReader(HttpRequest.Body))
                         using (JsonReader reader = new JsonTextReader(sw))
                         {
-                            var parameterData = serializer.Deserialize(reader, parm.ParameterType);
-                            parameterList = new object[] {parameterData};
+                            parameterData = serializer.Deserialize(reader, parm.ParameterType);
                         }
                     }
+
+                    // TODO: read parameter values from URL
+                    if (RouteData != null)
+                    {
+                        foreach (var kv in RouteData.Values)
+                        {
+                            var prop = parm.ParameterType.GetProperty(kv.Key,BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty  | BindingFlags.IgnoreCase);
+                            if (prop != null)
+                            {
+                                try
+                                {                                    
+                                    var val = ReflectionUtils.StringToTypedValue(kv.Value as string, prop.PropertyType);
+                                    ReflectionUtils.SetProperty(parameterData, kv.Key,val);
+                                }
+                                catch (Exception e)
+                                {
+                                    throw new InvalidOperationException(string.Format("Unable set parameter from URL segment for property: {0}", kv.Key));
+                                }                                
+                            }
+                        }
+                    }
+
+                    parameterList = new object[] { parameterData };
                 }
-            }
 
             try
             {
-                handlerContext.ResultValue = methodToInvoke.Invoke(inst, parameterList);
+                handlerContext.ResultValue = MethodToInvoke.Invoke(inst, parameterList);
             }
             catch(Exception ex)
             {
-                throw new InvalidOperationException(string.Format(Resources.UnableToExecuteMethod, methodToInvoke.Name,ex.Message));
+                throw new InvalidOperationException(string.Format(Resources.UnableToExecuteMethod, MethodToInvoke.Name,ex.Message));
             }
 
             
@@ -161,30 +166,32 @@ namespace CODE.Framework.Core.ServiceHandler
 
         static void SendJsonResponse(ServiceHandlerRequestContext context, object value)
         {
-            var response = context.HttpContext.Response;
+            var response = context.HttpResponse;
 
-            response.ContentType = "application/json; charset=utf-8";            
+            response.ContentType = "application/json; charset=utf-8";
 
-            JsonSerializer serializer = new JsonSerializer();
+            JsonSerializer serializer = new JsonSerializer(); 
+            
+            //if (context.ServiceConfig.JsonFormatMode == JsonFormatModes.ProperCase)
+            //    serializer.ContractResolver = new DefaultContractResolver();            
+            if (context.ServiceConfig.JsonFormatMode == JsonFormatModes.CamelCase)
+                serializer.ContractResolver = new DefaultContractResolver { NamingStrategy = new CamelCaseNamingStrategy() };
+            else if (context.ServiceConfig.JsonFormatMode == JsonFormatModes.SnakeCase)
+                serializer.ContractResolver = new DefaultContractResolver { NamingStrategy = new SnakeCaseNamingStrategy() };
+            
+
+
 #if DEBUG
             serializer.Formatting = Formatting.Indented;
 #endif
-            if (context.ServiceConfig.JsonFormatMode != JsonFormatModes.ProperCase)
-            {
-                var resolver = serializer.ContractResolver as DefaultContractResolver;
-                if (context.ServiceConfig.JsonFormatMode == JsonFormatModes.CamelCase)
-                    resolver.NamingStrategy = new CamelCaseNamingStrategy();
-                else if(context.ServiceConfig.JsonFormatMode == JsonFormatModes.SnakeCase)
-                    resolver.NamingStrategy = new SnakeCaseNamingStrategy();
-            }
 
             using (var sw = new StreamWriter(response.Body))
             {
                 using (JsonWriter writer = new JsonTextWriter(sw))
                 {
                     serializer.Serialize(writer, value);
-                }                
-            }        
+                }
+            }
         }
 
 
@@ -285,14 +292,6 @@ namespace CODE.Framework.Core.ServiceHandler
         //    var restAttribute = customAttributes[0] as RestUrlParameterAttribute;
         //    return restAttribute ?? new RestUrlParameterAttribute();
         //}
-    }
-
-    public enum ControllerHttpsMode
-    {
-        Undefined,
-        Http,
-        RequireHttps,
-        RequireHttpsExceptLocalhost
     }
 }
 

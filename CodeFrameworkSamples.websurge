@@ -7,7 +7,7 @@ Origin: west-wind.com
 
 ------------------------------------------------------------------
 
-POST http://localhost:5008/api/users/user/1234 HTTP/1.1
+GET http://localhost:5008/api/users/c68e7326-d14f-4b33-a9b7-82008bb1564f HTTP/1.1
 Accept-Encoding: gzip,deflate
 Content-type: application/json
 
@@ -28,7 +28,7 @@ Websurge-Request-Name: No Method - should return customerlist
 
 ------------------------------------------------------------------
 
-POST http://localhost:5008/api/customers/Customer HTTP/1.1
+POST http://localhost:5008/api/customers/c68e7326-d14f-4b33-a9b7-82008bb1564f HTTP/1.1
 Accept-Encoding: gzip,deflate
 Content-type: application/json
 
@@ -38,23 +38,11 @@ Content-type: application/json
 
 ------------------------------------------------------------------
 
-OPTIONS http://localhost:5008/api/users/IsAuthenticated HTTP/1.1
+GET http://localhost:5008/api/users HTTP/1.1
 Accept-Encoding: gzip,deflate
-Content-type: application/json
 Origin: west-wind.com
-Websurge-Request-Name: IsAuthentication - OPTIONS
 
 {}
-
-------------------------------------------------------------------
-
-POST http://localhost:5008/api/customers/Customer_COPIED HTTP/1.1
-Accept-Encoding: gzip,deflate
-Content-type: application/json
-
-{
-  "id": "{0111-1111-11111}"
-}
 
 ------------------------------------------------------------------
 

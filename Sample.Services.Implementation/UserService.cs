@@ -1,5 +1,6 @@
 ﻿using Sample.Contracts;
 using System;
+using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading;
 
@@ -70,14 +71,19 @@ namespace Sample.Services.Implementation
         public IsAuthenticatedResponse IsAuthenticated(IsAuthenticatedRequest request)
         {
             // passthrough success and check in controller override
-            return new IsAuthenticatedResponse();
+            return new IsAuthenticatedResponse
+            {
+                Success = true,
+                Username = "Bogus",
+                UserId = "12345"
+            };
         }
 
 
         public GetUserResponse GetUser(GetUserRequest request)
         {
             var response = new GetUserResponse();
-
+            response.UserId = request.Id;
             response.Success = true;
             response.Firstname = "Test";
             response.Lastname = "User";
@@ -151,7 +157,27 @@ namespace Sample.Services.Implementation
 //            return response;
         }
 
+        public GetUsersResponse GetUsers(GetUsersRequest request)
+        {
+            var response = new GetUsersResponse();
 
+            var userList = new List<User>()
+            {
+                new Contracts.User
+                {
+                    Id = Guid.NewGuid(),
+                    Username = "rstrahl"
+                },
+                new Contracts.User
+                {
+                    Id = Guid.NewGuid(),
+                    Username = "megger"
+                }
+            };
+
+            response.Users = userList;
+            return response;
+        }
     }
 
 }
