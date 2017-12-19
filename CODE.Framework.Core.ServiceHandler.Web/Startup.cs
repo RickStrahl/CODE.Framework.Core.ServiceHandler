@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -28,6 +29,7 @@ namespace CODE.Framework.Core.ServiceHandler.Web
         {
             services.AddServiceHandler(config =>
             {
+                config.Services.Clear();
                 config.Services.AddRange(new List<ServiceHandlerConfigurationInstance>
                 {
                     new ServiceHandlerConfigurationInstance
@@ -41,33 +43,31 @@ namespace CODE.Framework.Core.ServiceHandler.Web
                     {
                         ServiceTypeName = "Sample.Services.Implementation.CustomerService",
                         AssemblyName = "Sample.Services.Implementation",
-                        RouteBasePath = "/api/customers"
+                        RouteBasePath = "/api/customers",
+                        OnAuthorize = context =>
+                        {
+                            context.HttpContext.User = new ClaimsPrincipal(
+                                new ClaimsIdentity(
+                                    new Claim[] {
+                                        new Claim("Permission", "CanViewPage"),
+                                        new Claim(ClaimTypes.Role, "Administrator"),
+                                        new Claim(ClaimTypes.NameIdentifier, "Rick")},
+                                    "Basic"));
+
+                            return Task.FromResult(true);
+                        }
                     }
                 });
-            });
-            
-            //services.AddMvc(opt=>
-            //{
-                
-            //});
+
+                config.Cors.UseCorsPolicy = true;
+                config.Cors.AllowedOrigins = "*";
+            });                        
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ServiceHandlerConfiguration config)
-        {
-            //if (env.IsDevelopment())
-            //{
-            //    app.UseDeveloperExceptionPage();
-            //}
-
-
-            //if (config.Cors.UseCorsPolicy)
-                //app.UseCors(config.Cors.CorsPolicyName);
-            
-            app.UseServiceHandler();
-
-
-            //app.UseMvc();
+        {            
+            app.UseServiceHandler();            
         }
     }
 }

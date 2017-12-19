@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using CODE.Framework.Core.ServiceHandler.Properties;
 using Microsoft.AspNetCore.Http;
@@ -21,25 +24,29 @@ namespace CODE.Framework.Core.ServiceHandler
 
         HttpResponse HttpResponse { get; }
 
-        MethodInfo MethodToInvoke { get; }
+        HttpContext HttpContext { get;  }
 
-        ServiceHandlerConfigurationInstance ServiceConfiguration { get; }
+        MethodInvocationContext MethodContext { get; }
+
+        ServiceHandlerConfigurationInstance ServiceInstanceConfiguration { get; }
 
         RouteData RouteData { get; }
 
-
-        public ServiceRouteHandler(HttpRequest request,
-            HttpResponse response,
-            RouteData routeData,
-            ServiceHandlerConfigurationInstance serviceConfig,
-            MethodInfo methodToCall)
+   
+        
+        public ServiceRouteHandler(HttpContext httpContext,RouteData routeData,
+            MethodInvocationContext methodContext)
         {
-            HttpRequest = request;
-            HttpResponse = response;
+            HttpContext = httpContext;
+            HttpRequest = httpContext.Request;
+            HttpResponse = httpContext.Response;
+            
             RouteData = routeData;
-            MethodToInvoke = methodToCall;
+            MethodContext = methodContext;
 
-            ServiceConfiguration = serviceConfig;
+            var identity = HttpContext.User.Identity as ClaimsIdentity;
+                        
+            ServiceInstanceConfiguration = MethodContext.InstanceConfiguration;
         }
 
         public async Task ProcessRequest()
@@ -48,28 +55,37 @@ namespace CODE.Framework.Core.ServiceHandler
             {
                 HttpRequest = HttpRequest,
                 HttpResponse = HttpResponse,
-                ServiceConfig = ServiceConfiguration,
+                HttpContext = HttpContext,
+                ServiceInstanceConfiguration = ServiceInstanceConfiguration,
+                MethodContext = MethodContext,
                 Url = new ServiceHandlerRequestContextUrl()
                 {
-                    Url = UriHelper.GetDisplayUrl(HttpRequest),
-                    UrlPath = HttpRequest.Path.Value.ToString(),
+                    Url = HttpRequest.GetDisplayUrl(),                    
+                    UrlPath = HttpRequest.Path.Value,
                     QueryString = HttpRequest.QueryString,
                     HttpMethod = HttpRequest.Method.ToUpper()
                 }
+                
             };
 
             try
             {
-                if (context.ServiceConfig.HttpsMode == ControllerHttpsMode.RequireHttps &&
+                if (context.ServiceInstanceConfiguration.HttpsMode == ControllerHttpsMode.RequireHttps &&
                     HttpRequest.Scheme != "https")
                     throw new UnauthorizedAccessException(Resources.ServiceMustBeAccessedOverHttps);
 
-                if (ServiceConfiguration.OnAfterMethodInvoke != null)
-                    await ServiceConfiguration.OnBeforeMethodInvoke(context);
+                if (ServiceInstanceConfiguration.OnAuthorize != null)
+                {
+                    if (!await ServiceInstanceConfiguration.OnAuthorize(context))
+                        throw new UnauthorizedAccessException("Not authorized to access this request");
+                }
+
+                if (ServiceInstanceConfiguration.OnBeforeMethodInvoke != null)
+                    await ServiceInstanceConfiguration.OnBeforeMethodInvoke(context);
 
                 await ExecuteMethod(context);
 
-                ServiceConfiguration.OnAfterMethodInvoke?.Invoke(context);
+                ServiceInstanceConfiguration.OnAfterMethodInvoke?.Invoke(context);
 
                 if (string.IsNullOrEmpty(context.ResultJson))
                     context.ResultJson = JsonSerializationUtils.Serialize(context.ResultValue);
@@ -86,37 +102,61 @@ namespace CODE.Framework.Core.ServiceHandler
 
         public async Task ExecuteMethod(ServiceHandlerRequestContext handlerContext)
         {
-            var config = ServiceHandlerConfiguration.Current;
+            var serviceConfig = ServiceHandlerConfiguration.Current;
+            var methodToInvoke = handlerContext.MethodContext.MethodInfo;
+            var serviceType = handlerContext.ServiceInstanceConfiguration.ServiceType;
+
 
             var httpVerb = handlerContext.HttpRequest.Method;
-
-            if (httpVerb == "OPTIONS" && config.Cors.UseCorsPolicy)
+            if (httpVerb == "OPTIONS" && serviceConfig.Cors.UseCorsPolicy)
             {
                 // emty response - ASP.NET will provide CORS headers via applied policy
                 handlerContext.HttpResponse.StatusCode = StatusCodes.Status204NoContent;
                 return;
             }
-
-            var serviceType = handlerContext.ServiceConfig.ServiceType;
+            
             var inst = ReflectionUtils.CreateInstanceFromType(serviceType);
             if (inst == null)
                 throw new InvalidOperationException(string.Format(Resources.UnableToCreateTypeInstance, serviceType));
+            
+            var parameterList = GetMethodParameters(handlerContext);
 
+            try
+            {
+                handlerContext.ResultValue = methodToInvoke.Invoke(inst, parameterList);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(string.Format(Resources.UnableToExecuteMethod, methodToInvoke.Name,
+                    ex.Message));
+            }            
+        }
+
+        private object[] GetMethodParameters(ServiceHandlerRequestContext handlerContext)
+        {
             // parameter parsing
             var parameterList = new object[] { };
             object result = null;
 
             // simplistic - no parameters or single body post parameter
-            var paramInfos = MethodToInvoke.GetParameters();
-            if (paramInfos.Length > 0)
+            var paramInfos = handlerContext.MethodContext.ParameterInfos;
+            if (paramInfos.Length > 1)
+                throw new ArgumentNullException(string.Format(
+                    Resources.OnlySingleParametersAreAllowedOnServiceMethods,
+                    MethodContext.MethodInfo.Name));
+
+            // if there is a parameter create and de-serialize, then add url parameters
+            if (paramInfos.Length == 1)
             {
                 var parm = paramInfos[0];
 
+                // First Deserialize from body if any
                 JsonSerializer serializer = new JsonSerializer();
 
                 // there's always 1 parameter
                 object parameterData = null;
                 if (HttpRequest.ContentLength == null || HttpRequest.ContentLength < 1)
+                    // if no content create an empty one
                     parameterData = ReflectionUtils.CreateInstanceFromType(parm.ParameterType);
                 else
                 {
@@ -127,7 +167,7 @@ namespace CODE.Framework.Core.ServiceHandler
                     }
                 }
 
-                // Simple Parameter to object propery mapping
+                // Map named URL parameters to properties
                 if (RouteData != null)
                 {
                     foreach (var kv in RouteData.Values)
@@ -151,21 +191,9 @@ namespace CODE.Framework.Core.ServiceHandler
                     }
                 }
 
-                parameterList = new object[] {parameterData};
+                parameterList = new[] {parameterData};
             }
-
-            try
-            {
-                handlerContext.ResultValue = MethodToInvoke.Invoke(inst, parameterList);
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException(string.Format(Resources.UnableToExecuteMethod, MethodToInvoke.Name,
-                    ex.Message));
-            }
-
-
-            return;
+            return parameterList;
         }
 
 
@@ -183,9 +211,9 @@ namespace CODE.Framework.Core.ServiceHandler
 
             JsonSerializer serializer = new JsonSerializer();
 
-            if (context.ServiceConfig.JsonFormatMode == JsonFormatModes.CamelCase)
+            if (context.ServiceInstanceConfiguration.JsonFormatMode == JsonFormatModes.CamelCase)
                 serializer.ContractResolver = CamelCaseNamingStrategy;
-            else if (context.ServiceConfig.JsonFormatMode == JsonFormatModes.SnakeCase)
+            else if (context.ServiceInstanceConfiguration.JsonFormatMode == JsonFormatModes.SnakeCase)
                 serializer.ContractResolver = SnakeCaseNamingStrategy;
 
 #if DEBUG
@@ -201,6 +229,58 @@ namespace CODE.Framework.Core.ServiceHandler
             }
         }
                 
+    }
+
+
+    /// <summary>
+    /// Method that holds cachable method invocation logic
+    /// </summary>
+    public class MethodInvocationContext
+    {
+        public static ConcurrentDictionary<MethodInfo, MethodInvocationContext> ActiveMethodContexts { get; set; }
+            = new ConcurrentDictionary<MethodInfo, MethodInvocationContext>();
+
+        public RestAttribute RestAttribute { get; set; }
+
+        public List<string> AuthorizationRoles = new List<string>();
+
+        public MethodInfo MethodInfo { get; set; }
+        
+        public ParameterInfo[] ParameterInfos { get; set; }
+
+        public ServiceHandlerConfigurationInstance InstanceConfiguration { get; set; }
+
+        public ServiceHandlerConfiguration ServiceConfiguration { get; set; }
+
+        public MethodInvocationContext(MethodInfo method, 
+            ServiceHandlerConfiguration serviceConfiguration,
+            ServiceHandlerConfigurationInstance instanceConfiguration)
+        {
+            InstanceConfiguration = instanceConfiguration;
+            ServiceConfiguration = serviceConfiguration;
+
+            MethodInfo = method;
+            ParameterInfos = method.GetParameters();
+
+
+            RestAttribute = method.GetCustomAttribute(typeof(RestAttribute), true) as RestAttribute;
+            if (RestAttribute == null)
+                return;
+
+            // set allowable authorization roles
+            if (RestAttribute.AuthorizationRoles != null)
+            {
+                AuthorizationRoles = RestAttribute.AuthorizationRoles
+                            .Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                            .ToList();
+                if (AuthorizationRoles.Count == 0)
+                    AuthorizationRoles.Add(string.Empty);  // Any authorized user
+            }
+
+
+
+        }
+
     }
 }
 

@@ -123,6 +123,9 @@
   <data name="InvalidServiceType" xml:space="preserve">
     <value>Invalid Service type: {0}</value>
   </data>
+  <data name="OnlySingleParametersAreAllowedOnServiceMethods" xml:space="preserve">
+    <value>Only a single object parameter can be passed to a service method "{0}"</value>
+  </data>
   <data name="ServiceMethodDoesntExist" xml:space="preserve">
     <value>Service method {0} doesn't exist or can't be called with Http Verb {1}. Method not invoked.</value>
   </data>

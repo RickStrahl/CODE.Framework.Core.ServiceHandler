@@ -11,11 +11,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sample.Contracts", "Sample.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sample.Services.Implementation", "Sample.Services.Implementation\Sample.Services.Implementation.csproj", "{32A47A88-EB80-4B1F-A90B-51E643CF0B7B}"
 EndProject
-Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{2BD22F27-CD15-49ED-B9AA-0B9FDC7E72A7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CODE.Framework.Core.ServiceHandler.Web.Generic", "CODE.Framework.Core.ServiceHandler.Web.Generic\CODE.Framework.Core.ServiceHandler.Web.Generic.csproj", "{93E31627-6B88-4524-8FF0-D128FA470FA8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CODE.Framework.Core.ServiceHandler.Web.Generic", "CODE.Framework.Core.ServiceHandler.Web.Generic\CODE.Framework.Core.ServiceHandler.Web.Generic.csproj", "{93E31627-6B88-4524-8FF0-D128FA470FA8}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CODE.Framework.Core.Contracts", "CODE.Framework.Core.Contracts\CODE.Framework.Core.Contracts.csproj", "{760223CB-9295-48D3-9EDF-F55BEE0450DE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CODE.Framework.Core.Contracts", "CODE.Framework.Core.Contracts\CODE.Framework.Core.Contracts.csproj", "{760223CB-9295-48D3-9EDF-F55BEE0450DE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,10 +37,6 @@ Global
 		{32A47A88-EB80-4B1F-A90B-51E643CF0B7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{32A47A88-EB80-4B1F-A90B-51E643CF0B7B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{32A47A88-EB80-4B1F-A90B-51E643CF0B7B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2BD22F27-CD15-49ED-B9AA-0B9FDC7E72A7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2BD22F27-CD15-49ED-B9AA-0B9FDC7E72A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2BD22F27-CD15-49ED-B9AA-0B9FDC7E72A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2BD22F27-CD15-49ED-B9AA-0B9FDC7E72A7}.Release|Any CPU.Build.0 = Release|Any CPU
 		{93E31627-6B88-4524-8FF0-D128FA470FA8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{93E31627-6B88-4524-8FF0-D128FA470FA8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{93E31627-6B88-4524-8FF0-D128FA470FA8}.Release|Any CPU.ActiveCfg = Release|Any CPU

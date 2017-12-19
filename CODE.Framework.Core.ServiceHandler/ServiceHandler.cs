@@ -33,7 +33,7 @@ namespace CODE.Framework.Core.ServiceHandler
             var context = new ServiceHandlerRequestContext()
             {
                 HttpContext = HttpContext,
-                ServiceConfig = ServiceConfiguration,
+                ServiceInstanceConfiguration = ServiceConfiguration,
                 Url = new ServiceHandlerRequestContextUrl()
                 {
                     Url = UriHelper.GetDisplayUrl(HttpContext.Request),
@@ -45,7 +45,7 @@ namespace CODE.Framework.Core.ServiceHandler
 
             try
             {
-                if (context.ServiceConfig.HttpsMode == ControllerHttpsMode.RequireHttps && HttpContext.Request.Scheme != "https")
+                if (context.ServiceInstanceConfiguration.HttpsMode == ControllerHttpsMode.RequireHttps && HttpContext.Request.Scheme != "https")
                     throw new UnauthorizedAccessException(Resources.ServiceMustBeAccessedOverHttps);
 
                 if (ServiceConfiguration.OnAfterMethodInvoke != null)
@@ -93,7 +93,7 @@ namespace CODE.Framework.Core.ServiceHandler
             var path = lowerPath.Replace(basePath.ToLower(), "");
 
           // pick up the configured service implementation type and create an instance
-            var serviceType = handlerContext.ServiceConfig.ServiceType;
+            var serviceType = handlerContext.ServiceInstanceConfiguration.ServiceType;
             var inst = ReflectionUtils.CreateInstanceFromType(serviceType);
 
             if (inst == null)
@@ -165,12 +165,12 @@ namespace CODE.Framework.Core.ServiceHandler
 #if DEBUG
             serializer.Formatting = Formatting.Indented;
 #endif
-            if (context.ServiceConfig.JsonFormatMode != JsonFormatModes.ProperCase)
+            if (context.ServiceInstanceConfiguration.JsonFormatMode != JsonFormatModes.ProperCase)
             {
                 var resolver = serializer.ContractResolver as DefaultContractResolver;
-                if (context.ServiceConfig.JsonFormatMode == JsonFormatModes.CamelCase)
+                if (context.ServiceInstanceConfiguration.JsonFormatMode == JsonFormatModes.CamelCase)
                     resolver.NamingStrategy = new CamelCaseNamingStrategy();
-                else if(context.ServiceConfig.JsonFormatMode == JsonFormatModes.SnakeCase)
+                else if(context.ServiceInstanceConfiguration.JsonFormatMode == JsonFormatModes.SnakeCase)
                     resolver.NamingStrategy = new SnakeCaseNamingStrategy();
             }
 

@@ -69,6 +69,16 @@ namespace CODE.Framework.Core.ServiceHandler
         /// ASP.NET Core Routing data
         /// </summary>
         public string Route { get; set; }
+
+        /// <summary>
+        /// Specify roles required to access this method
+        /// null means anonymous, string.Empty means ANY authorized user
+        /// </summary>
+        public string AuthorizationRoles { get; set;  }         
+
+        public string AuthorizationPolicy { get; set; }
+        
+
     }
 
     /// <summary>

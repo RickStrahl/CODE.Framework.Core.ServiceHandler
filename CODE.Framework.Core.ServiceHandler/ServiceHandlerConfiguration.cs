@@ -70,12 +70,19 @@ namespace CODE.Framework.Core.ServiceHandler
         /// </summary>
         public Func<ServiceHandlerRequestContext, Task> OnBeforeMethodInvoke { get; set; }
 
+
+        /// <summary>
+        /// Called to potentially check and handle authentication tasks.
+        /// Return true to allow request through, otherwise return false
+        /// </summary>
+        /// <return>Return true or false to allow request through. When true request is further checked by attribute based authorization</return>
+        public Func<ServiceHandlerRequestContext, Task<bool>> OnAuthorize { get; set; }
+        
         /// <summary>
         /// Optional hook method fired after the service method is
         /// is invoked. Method signature is async.
         /// </summary>
-        public Func<ServiceHandlerRequestContext, Task> OnAfterMethodInvoke { get; set; }
-        
+        public Func<ServiceHandlerRequestContext, Task> OnAfterMethodInvoke { get; set; }        
     }
 
     public enum JsonFormatModes
@@ -83,6 +90,6 @@ namespace CODE.Framework.Core.ServiceHandler
         CamelCase,
         ProperCase,
         SnakeCase
-    }
+    }    
 }
 

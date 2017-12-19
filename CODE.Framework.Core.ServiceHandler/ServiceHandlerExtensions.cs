@@ -113,17 +113,17 @@ namespace CODE.Framework.Core.ServiceHandler
         public static IApplicationBuilder UseServiceHandler(
             this IApplicationBuilder appBuilder)
         {
-            var config = ServiceHandlerConfiguration.Current;
+            var serviceConfig = ServiceHandlerConfiguration.Current;
 
 
-            foreach (var serviceConfig in config.Services)
+            foreach (var serviceInstanceConfig in serviceConfig.Services)
             {
                 // conditionally route to service handler base on RouteBasePath
                 appBuilder.MapWhen(
                     context =>
                     {
                         var requestPath = context.Request.Path.ToString().ToLower();
-                        var servicePath = serviceConfig.RouteBasePath.ToLower();
+                        var servicePath = serviceInstanceConfig.RouteBasePath.ToLower();
                         bool matched =
                             requestPath == servicePath ||
                             requestPath.StartsWith(servicePath.Replace("//", "/") + "/");
@@ -132,16 +132,16 @@ namespace CODE.Framework.Core.ServiceHandler
                     },
                     builder =>
                     {
-                        builder.UseCors(config.Cors.CorsPolicyName);
+                        builder.UseCors(serviceConfig.Cors.CorsPolicyName);
 
                         // ROUTINE SERVICE HANDLER
                         builder.UseRouter(routeBuilder =>
                         {
-                             var interfaces = serviceConfig.ServiceType.GetInterfaces();
+                             var interfaces = serviceInstanceConfig.ServiceType.GetInterfaces();
                              if (interfaces.Length < 1)
                                     throw new NotSupportedException(Resources.HostedServiceRequiresAnInterface);
 
-                            foreach (var method in serviceConfig.ServiceType.GetMethods(
+                            foreach (var method in serviceInstanceConfig.ServiceType.GetMethods(
                                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.InvokeMethod | BindingFlags.DeclaredOnly))
                             {
                                 // find service contract                                
@@ -152,11 +152,12 @@ namespace CODE.Framework.Core.ServiceHandler
                                 var restAttribute = GetRestAttribute(interfaceMethod);
                                 if (restAttribute == null)
                                     continue;
+                                var methodContext = new MethodInvocationContext(method, serviceConfig, serviceInstanceConfig);
 
                                 Func<HttpRequest, HttpResponse, RouteData, Task> exec =
                                     async (req, resp, routeData) =>
-                                    {
-                                        var handler = new ServiceRouteHandler(req,resp,routeData,serviceConfig,method);
+                                    {                                        
+                                        var handler = new ServiceRouteHandler(req.HttpContext,routeData,methodContext);
                                         await handler.ProcessRequest();
                                     };
 
@@ -165,7 +166,7 @@ namespace CODE.Framework.Core.ServiceHandler
                                     relativeRoute = method.Name;
 
                                 string fullRoute =
-                                    (serviceConfig.RouteBasePath + "/" + relativeRoute).Replace("//", "/");
+                                    (serviceInstanceConfig.RouteBasePath + "/" + relativeRoute).Replace("//", "/");
 
                                 if (fullRoute.StartsWith("/"))
                                     fullRoute = fullRoute.Substring(1);

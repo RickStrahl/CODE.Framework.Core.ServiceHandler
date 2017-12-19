@@ -14,13 +14,14 @@ namespace CODE.Framework.Core.ServiceHandler
 
         public HttpResponse HttpResponse { get; set; }
 
-        public ServiceHandlerConfigurationInstance ServiceConfig { get; set; }
+        public ServiceHandlerConfigurationInstance ServiceInstanceConfiguration { get; set; }
 
         public object ResultValue { get; set; }
 
         public string ResultJson { get; set; }
     
-        public ServiceHandlerRequestContextUrl Url { get; set; } = new ServiceHandlerRequestContextUrl();        
+        public ServiceHandlerRequestContextUrl Url { get; set; } = new ServiceHandlerRequestContextUrl();
+        public MethodInvocationContext MethodContext { get; internal set; }
     }
 
     public class ServiceHandlerRequestContextUrl

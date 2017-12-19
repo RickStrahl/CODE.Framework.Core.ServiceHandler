@@ -79,6 +79,15 @@ namespace CODE.Framework.Core.ServiceHandler.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Only a single object parameter can be passed to a service method &quot;{0}&quot;.
+        /// </summary>
+        internal static string OnlySingleParametersAreAllowedOnServiceMethods {
+            get {
+                return ResourceManager.GetString("OnlySingleParametersAreAllowedOnServiceMethods", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Service method {0} doesn&apos;t exist or can&apos;t be called with Http Verb {1}. Method not invoked..
         /// </summary>
         internal static string ServiceMethodDoesntExist {
