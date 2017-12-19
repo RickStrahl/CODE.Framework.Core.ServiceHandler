@@ -1,13 +1,14 @@
 ﻿using CODE.Framework.Core.ServiceHandler;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
+using System.Threading.Tasks;
 
 namespace Sample.Contracts
 {
     public interface ICustomerService
     {
         [Rest(Method = RestMethods.Post, Name ="Customer", Route = "{id:guid}")]
-        GetCustomerResponse GetCustomer(GetCustomerRequest request);
+        Task<GetCustomerResponse> GetCustomer(GetCustomerRequest request);
 
         [Rest(Method = RestMethods.Get, Name = "", Route = "")]
         GetCustomersResponse GetCustomers();

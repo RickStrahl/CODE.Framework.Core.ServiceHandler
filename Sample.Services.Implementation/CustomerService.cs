@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Sample.Services.Implementation
 {
@@ -26,9 +27,9 @@ namespace Sample.Services.Implementation
             };
         }
 
-        public GetCustomerResponse GetCustomer(GetCustomerRequest request)
+        public async Task<GetCustomerResponse> GetCustomer(GetCustomerRequest request)
         {
-            return new GetCustomerResponse()
+            var result = new GetCustomerResponse()
             {
                 Customer = new Customer() {
                     Id = request.Id,
@@ -36,6 +37,8 @@ namespace Sample.Services.Implementation
                     Company = "West wind"
                 }                
             };
+
+            return result;
         }
 
     }

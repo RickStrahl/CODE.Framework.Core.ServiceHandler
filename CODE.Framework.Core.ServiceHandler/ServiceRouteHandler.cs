@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -100,7 +97,12 @@ namespace CODE.Framework.Core.ServiceHandler
         }
 
 
-        public async Task ExecuteMethod(ServiceHandlerRequestContext handlerContext)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="handlerContext"></param>
+        /// <returns></returns>
+        async Task ExecuteMethod(ServiceHandlerRequestContext handlerContext)
         {
             var serviceConfig = ServiceHandlerConfiguration.Current;
             var methodToInvoke = handlerContext.MethodContext.MethodInfo;
@@ -123,7 +125,10 @@ namespace CODE.Framework.Core.ServiceHandler
 
             try
             {
-                handlerContext.ResultValue = methodToInvoke.Invoke(inst, parameterList);
+                if (!handlerContext.MethodContext.IsAsync)
+                    handlerContext.ResultValue = methodToInvoke.Invoke(inst, parameterList);
+                else                                    
+                    handlerContext.ResultValue = await (dynamic) methodToInvoke.Invoke(inst, parameterList);                
             }
             catch (Exception ex)
             {
@@ -132,6 +137,12 @@ namespace CODE.Framework.Core.ServiceHandler
             }            
         }
 
+
+        /// <summary>
+        /// Retrieve parameters from body and URL parameters
+        /// </summary>
+        /// <param name="handlerContext"></param>
+        /// <returns></returns>
         private object[] GetMethodParameters(ServiceHandlerRequestContext handlerContext)
         {
             // parameter parsing
@@ -229,58 +240,6 @@ namespace CODE.Framework.Core.ServiceHandler
             }
         }
                 
-    }
-
-
-    /// <summary>
-    /// Method that holds cachable method invocation logic
-    /// </summary>
-    public class MethodInvocationContext
-    {
-        public static ConcurrentDictionary<MethodInfo, MethodInvocationContext> ActiveMethodContexts { get; set; }
-            = new ConcurrentDictionary<MethodInfo, MethodInvocationContext>();
-
-        public RestAttribute RestAttribute { get; set; }
-
-        public List<string> AuthorizationRoles = new List<string>();
-
-        public MethodInfo MethodInfo { get; set; }
-        
-        public ParameterInfo[] ParameterInfos { get; set; }
-
-        public ServiceHandlerConfigurationInstance InstanceConfiguration { get; set; }
-
-        public ServiceHandlerConfiguration ServiceConfiguration { get; set; }
-
-        public MethodInvocationContext(MethodInfo method, 
-            ServiceHandlerConfiguration serviceConfiguration,
-            ServiceHandlerConfigurationInstance instanceConfiguration)
-        {
-            InstanceConfiguration = instanceConfiguration;
-            ServiceConfiguration = serviceConfiguration;
-
-            MethodInfo = method;
-            ParameterInfos = method.GetParameters();
-
-
-            RestAttribute = method.GetCustomAttribute(typeof(RestAttribute), true) as RestAttribute;
-            if (RestAttribute == null)
-                return;
-
-            // set allowable authorization roles
-            if (RestAttribute.AuthorizationRoles != null)
-            {
-                AuthorizationRoles = RestAttribute.AuthorizationRoles
-                            .Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                            .ToList();
-                if (AuthorizationRoles.Count == 0)
-                    AuthorizationRoles.Add(string.Empty);  // Any authorized user
-            }
-
-
-
-        }
-
     }
 }
 
