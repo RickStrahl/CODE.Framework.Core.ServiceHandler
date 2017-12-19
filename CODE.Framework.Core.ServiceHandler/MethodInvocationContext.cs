@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -10,6 +11,7 @@ namespace CODE.Framework.Core.ServiceHandler
     /// <summary>
     /// Method that holds cachable method invocation logic
     /// </summary>
+    [DebuggerDisplay("Method: {MethodInfo.Name} - {RestAttribute.Method}")]
     public class MethodInvocationContext
     {
         public static ConcurrentDictionary<MethodInfo, MethodInvocationContext> ActiveMethodContexts { get; set; }
@@ -46,7 +48,7 @@ namespace CODE.Framework.Core.ServiceHandler
             RestAttribute = method.GetCustomAttribute(typeof(RestAttribute), true) as RestAttribute;
             if (RestAttribute == null)
                 return;
-
+            
             // set allowable authorization roles
             if (RestAttribute.AuthorizationRoles != null)
             {

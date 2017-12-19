@@ -37,13 +37,15 @@ namespace CODE.Framework.Core.ServiceHandler.Web
                         ServiceType = typeof(UserService),
                         //ServiceTypeName = "Sample.Services.Implementation.UserService",
                         //AssemblyName = "Sample.Services.Implementation",
-                        RouteBasePath = "/api/users"
+                        RouteBasePath = "/api/users",
+                        JsonFormatMode = JsonFormatModes.CamelCase
                     },
                     new ServiceHandlerConfigurationInstance
                     {
                         ServiceTypeName = "Sample.Services.Implementation.CustomerService",
                         AssemblyName = "Sample.Services.Implementation",
                         RouteBasePath = "/api/customers",
+                        JsonFormatMode = JsonFormatModes.ProperCase,
                         OnAuthorize = context =>
                         {
                             context.HttpContext.User = new ClaimsPrincipal(

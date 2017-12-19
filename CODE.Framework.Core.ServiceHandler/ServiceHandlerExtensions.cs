@@ -118,7 +118,7 @@ namespace CODE.Framework.Core.ServiceHandler
 
             foreach (var serviceInstanceConfig in serviceConfig.Services)
             {
-                // conditionally route to service handler base on RouteBasePath
+                // conditionally route to service handler based on RouteBasePath
                 appBuilder.MapWhen(
                     context =>
                     {
@@ -129,18 +129,22 @@ namespace CODE.Framework.Core.ServiceHandler
                             requestPath.StartsWith(servicePath.Replace("//", "/") + "/");
 
                         return matched;
-                    },
+                    },                    
                     builder =>
                     {
-                        builder.UseCors(serviceConfig.Cors.CorsPolicyName);
+                        if (serviceConfig.Cors.UseCorsPolicy)
+                            builder.UseCors(serviceConfig.Cors.CorsPolicyName);
 
-                        // ROUTINE SERVICE HANDLER
+                        // Build up route mapping
                         builder.UseRouter(routeBuilder =>
                         {
+                            // Get Service interface = assuming first interface def is service interface
                              var interfaces = serviceInstanceConfig.ServiceType.GetInterfaces();
                              if (interfaces.Length < 1)
                                     throw new NotSupportedException(Resources.HostedServiceRequiresAnInterface);
 
+                             // Loop through service methods and cache the method info, parameter info, and RestAttribute
+                             // in a MethodInvocationContext so we don't have to do this for each method call
                             foreach (var method in serviceInstanceConfig.ServiceType.GetMethods(
                                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.InvokeMethod | BindingFlags.DeclaredOnly))
                             {
@@ -152,35 +156,43 @@ namespace CODE.Framework.Core.ServiceHandler
                                 var restAttribute = GetRestAttribute(interfaceMethod);
                                 if (restAttribute == null)
                                     continue;
-                                var methodContext = new MethodInvocationContext(method, serviceConfig, serviceInstanceConfig);
-
-                                Func<HttpRequest, HttpResponse, RouteData, Task> exec =
-                                    async (req, resp, routeData) =>
-                                    {                                        
-                                        var handler = new ServiceRouteHandler(req.HttpContext,routeData,methodContext);
-                                        await handler.ProcessRequest();
-                                    };
-
-                                var relativeRoute = restAttribute.Route;
+                                
+                               var relativeRoute = restAttribute.Route;
                                 if (relativeRoute == null)
+                                    // if no route assume we use the method name
+                                    // Note: string.Empty is a valid route!
                                     relativeRoute = method.Name;
 
+                                // figure out the full route we pass the ASP.NET Core Route Manager
                                 string fullRoute =
                                     (serviceInstanceConfig.RouteBasePath + "/" + relativeRoute).Replace("//", "/");
 
                                 if (fullRoute.StartsWith("/"))
                                     fullRoute = fullRoute.Substring(1);
-                                
+
+                                // Cache reflection and context data
+                                var methodContext = new MethodInvocationContext(method, serviceConfig, serviceInstanceConfig);
+
+                                // This code is what triggers the SERVICE METHOD EXECUTION
+                                // via a delegate that is called when the route is matched
+                                Func<HttpRequest, HttpResponse, RouteData, Task> exec =
+                                    async (req, resp, routeData) =>
+                                    {                                        
+                                        // ReSharper disable once AccessToModifiedClosure
+                                        var handler = new ServiceRouteHandler(req.HttpContext, routeData, methodContext);
+                                        await handler.ProcessRequest();
+                                    };
+
                                 routeBuilder.MapVerb(restAttribute.Method.ToString(), fullRoute, exec);
                                 routeBuilder.MapVerb("OPTIONS", fullRoute, async (req, resp, route) =>
                                 {
                                     resp.StatusCode = StatusCodes.Status204NoContent;
                                 });
-                                Debug.WriteLine("Created route for: " + fullRoute  +  " " +  restAttribute.Method);
+                                
                             }
                         });
-                        // END ROUTING SERVICE HANDLER
-
+                      
+                        // TODO: Should move into a separate 
                         // builder.UseMiddleware<ServiceHandlerMiddleware>();                        
 
                     });
