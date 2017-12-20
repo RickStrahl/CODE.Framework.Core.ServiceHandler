@@ -59,6 +59,9 @@ namespace CODE.Framework.Core.ServiceHandler
                                 string.Format(Resources.InvalidServiceType, svc.ServiceTypeName));
                     }
                     svc.ServiceType = type;
+
+                    // Add to DI so we can compose the constructor
+                    services.AddTransient(type);
                 }
             }
 

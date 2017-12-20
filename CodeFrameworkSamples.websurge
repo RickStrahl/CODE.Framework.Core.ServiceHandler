@@ -42,8 +42,6 @@ GET http://localhost:5008/api/users HTTP/1.1
 Accept-Encoding: gzip,deflate
 Origin: west-wind.com
 
-{}
-
 ------------------------------------------------------------------
 
 

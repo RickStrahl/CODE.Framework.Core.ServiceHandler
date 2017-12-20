@@ -25,7 +25,7 @@ namespace CODE.Framework.Core.ServiceHandler
 
         public bool IsAsync { get; set; }
         
-        public ParameterInfo[] ParameterInfos { get; set; }
+        
 
         public ServiceHandlerConfigurationInstance InstanceConfiguration { get; set; }
 
@@ -37,9 +37,7 @@ namespace CODE.Framework.Core.ServiceHandler
         {
             InstanceConfiguration = instanceConfiguration;
             ServiceConfiguration = serviceConfiguration;
-
             MethodInfo = method;
-            ParameterInfos = method.GetParameters();
             
             var attrib = (AsyncStateMachineAttribute)method.GetCustomAttribute(typeof(AsyncStateMachineAttribute));
             if(attrib != null)

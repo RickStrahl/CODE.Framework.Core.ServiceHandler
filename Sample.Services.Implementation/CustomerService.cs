@@ -1,4 +1,5 @@
-﻿using Sample.Contracts;
+﻿using Microsoft.Extensions.Configuration;
+using Sample.Contracts;
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
@@ -9,6 +10,16 @@ namespace Sample.Services.Implementation
 {
     public class CustomerService : ICustomerService
     {
+        IConfiguration Config;
+
+        /// <summary>
+        /// You can optionally inject any DI dependencies
+        /// </summary>
+        /// <param name="config"></param>
+        public CustomerService(IConfiguration config)
+        {
+            var Config = config;
+        }
 
         public GetCustomersResponse GetCustomers()
         {

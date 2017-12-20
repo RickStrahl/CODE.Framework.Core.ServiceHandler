@@ -40,9 +40,7 @@ namespace CODE.Framework.Core.ServiceHandler
             
             RouteData = routeData;
             MethodContext = methodContext;
-
-            var identity = HttpContext.User.Identity as ClaimsIdentity;
-                        
+            
             ServiceInstanceConfiguration = MethodContext.InstanceConfiguration;
         }
 
@@ -61,8 +59,7 @@ namespace CODE.Framework.Core.ServiceHandler
                     UrlPath = HttpRequest.Path.Value,
                     QueryString = HttpRequest.QueryString,
                     HttpMethod = HttpRequest.Method.ToUpper()
-                }
-                
+                }                
             };
 
             try
@@ -116,19 +113,20 @@ namespace CODE.Framework.Core.ServiceHandler
                 handlerContext.HttpResponse.StatusCode = StatusCodes.Status204NoContent;
                 return;
             }
-            
-            var inst = ReflectionUtils.CreateInstanceFromType(serviceType);
+
+            // Compose type using DI
+            var inst = HttpContext.RequestServices.GetService(serviceType);            
             if (inst == null)
                 throw new InvalidOperationException(string.Format(Resources.UnableToCreateTypeInstance, serviceType));
-            
+                        
             var parameterList = GetMethodParameters(handlerContext);
 
             try
             {
-                if (!handlerContext.MethodContext.IsAsync)
-                    handlerContext.ResultValue = methodToInvoke.Invoke(inst, parameterList);
-                else                                    
-                    handlerContext.ResultValue = await (dynamic) methodToInvoke.Invoke(inst, parameterList);                
+            if (!handlerContext.MethodContext.IsAsync)
+                handlerContext.ResultValue = methodToInvoke.Invoke(inst, parameterList);
+            else                                    
+                handlerContext.ResultValue = await (dynamic) methodToInvoke.Invoke(inst, parameterList);                
             }
             catch (Exception ex)
             {
@@ -150,7 +148,7 @@ namespace CODE.Framework.Core.ServiceHandler
             object result = null;
 
             // simplistic - no parameters or single body post parameter
-            var paramInfos = handlerContext.MethodContext.ParameterInfos;
+            var paramInfos = handlerContext.MethodContext.MethodInfo.GetParameters();
             if (paramInfos.Length > 1)
                 throw new ArgumentNullException(string.Format(
                     Resources.OnlySingleParametersAreAllowedOnServiceMethods,
@@ -193,7 +191,7 @@ namespace CODE.Framework.Core.ServiceHandler
                                 var val = ReflectionUtils.StringToTypedValue(kv.Value as string, prop.PropertyType);
                                 ReflectionUtils.SetProperty(parameterData, kv.Key, val);
                             }
-                            catch (Exception e)
+                            catch
                             {
                                 throw new InvalidOperationException(
                                     string.Format("Unable set parameter from URL segment for property: {0}", kv.Key));
@@ -225,7 +223,7 @@ namespace CODE.Framework.Core.ServiceHandler
             if (context.ServiceInstanceConfiguration.JsonFormatMode == JsonFormatModes.CamelCase)
                 serializer.ContractResolver = CamelCaseNamingStrategy;
             else if (context.ServiceInstanceConfiguration.JsonFormatMode == JsonFormatModes.SnakeCase)
-                serializer.ContractResolver = SnakeCaseNamingStrategy;
+                serializer.ContractResolver = SnakeCaseNamingStrategy;            
 
 #if DEBUG
             serializer.Formatting = Formatting.Indented;

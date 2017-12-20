@@ -34,16 +34,16 @@ namespace CODE.Framework.Core.ServiceHandler.Web
                 {
                     new ServiceHandlerConfigurationInstance
                     {
-                        ServiceType = typeof(UserService),
-                        //ServiceTypeName = "Sample.Services.Implementation.UserService",
-                        //AssemblyName = "Sample.Services.Implementation",
+                        //ServiceType = typeof(UserService), // Using an explicit Type (assembly reference comes in)
+                        ServiceTypeName = "Sample.Services.Implementation.UserService",
+                        AssemblyName = "Sample.Services.Implementation",
                         RouteBasePath = "/api/users",
                         JsonFormatMode = JsonFormatModes.CamelCase
                     },
                     new ServiceHandlerConfigurationInstance
                     {
-                        ServiceTypeName = "Sample.Services.Implementation.CustomerService",
-                        AssemblyName = "Sample.Services.Implementation",
+                        ServiceTypeName = "Sample.Services.Implementation.CustomerService", // dynamically loaded type
+                        AssemblyName = "Sample.Services.Implementation",  // framework needs to load assembly - might need .dll extension
                         RouteBasePath = "/api/customers",
                         JsonFormatMode = JsonFormatModes.ProperCase,
                         OnAuthorize = context =>
